@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Moisés González - SICS Analista de Zona">
+  <title>SICS — Control de Escalamiento a Mantenimiento y Zona 3</title>
+  
+  <!-- PWA Manifest & Android Meta Tags -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#0b1120">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SICS Airtek">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+
+  <!-- HEADER PRINCIPAL -->
+  <header class="sics-main-header">
+    <div class="header-brand">
+      <i class="fas fa-tools brand-icon" style="color: #f59e0b;"></i>
+      <div>
+        <span class="brand-text">SICS Mantenimiento & Zona 3</span>
+        <span class="brand-sub">Escalamientos a Supervisores | Control y Seguimiento</span>
+      </div>
+    </div>
+
+    <!-- KPIs Rápidos en Header -->
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="kpi-pill" title="Casos pendientes de resolución">
+        <i class="fas fa-hourglass-half" style="color:#f59e0b;"></i>
+        <span>Pendientes:</span>
+        <strong id="kpiPendientes">0</strong>
+      </div>
+      <div class="kpi-pill" title="Casos de prioridad crítica">
+        <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i>
+        <span>Críticos:</span>
+        <strong id="kpiCriticos" style="color:#ef4444;">0</strong>
+      </div>
+      <div class="kpi-pill" title="Casos resueltos en el turno">
+        <i class="fas fa-check-circle" style="color:#10b981;"></i>
+        <span>Resueltos:</span>
+        <strong id="kpiResueltos">0</strong>
+      </div>
+    </div>
+
+    <!-- Acciones Globales -->
+    <div class="header-actions">
+      <button class="btn-action" id="btnInstallPwa" style="display:none; background:#10b981; color:#fff;" title="Instalar aplicación en tu teléfono Android">
+        <i class="fas fa-download"></i> Instalar App
+      </button>
+      <button class="btn-action" id="btnSyncCloud" style="background:#0284c7; color:#fff;" title="Sincronizar en tiempo real con Google Sheets">
+        <i class="fas fa-sync-alt"></i> Nube Sheets
+      </button>
+      <button class="btn-action" id="btnCopiarResumenWhatsApp" style="background:#25d366; color:#fff;" title="Copiar reporte consolidado para WhatsApp">
+        <i class="fab fa-whatsapp"></i> Reporte WhatsApp
+      </button>
+      <button class="btn-action" id="btnNuevoEscalamiento" style="background:var(--corp-active); color:#fff;" title="Registrar nuevo caso escalado (Ctrl+N)">
+        <i class="fas fa-plus"></i> Nuevo Caso
+      </button>
+      <button id="btnConfigCloud" class="control-btn-circle" title="Configurar conexión con Google Sheets">
+        <i class="fas fa-cog"></i>
+      </button>
+      <button id="themeToggleBtn" class="control-btn-circle" title="Cambiar Tema (Oscuro / Claro)">
+        <i class="fas fa-moon" id="themeIcon"></i>
+      </button>
+      <button id="btnExportar" class="control-btn-circle" title="Exportar / Respaldo">
+        <i class="fas fa-download"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- PANEL DE FILTROS Y BÚSQUEDA -->
+  <main class="main-content">
+    <div class="filters-panel">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="inputBuscar" placeholder="Buscar por Orden, Cliente, MDT, Solicitante, Cuadrilla..." class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label><i class="fas fa-user-shield"></i> Supervisor:</label>
+        <select id="filtroSupervisor" class="filter-select">
+          <option value="">Todos los Supervisores</option>
+          <optgroup label="Zona 3 (Oeste - Mantenimiento)">
+            <option value="Roberto Carrillo">Roberto Carrillo (Mantenimiento)</option>
+            <option value="José Rías">José Rías (Suplente Zona 3)</option>
+            <option value="Jesús Vargas">Jesús Vargas (Vacaciones)</option>
+          </optgroup>
+          <optgroup label="Zona 1 (Norte)">
+            <option value="José Castillo">José Castillo</option>
+            <option value="Franchy Rodriguez">Franchy Rodriguez</option>
+            <option value="Bertin López">Bertin López (Vacaciones)</option>
+            <option value="Mario Valladares">Mario Valladares (Suplente Bertin)</option>
+            <option value="Randy Romero">Randy Romero</option>
+          </optgroup>
+          <optgroup label="Zona 2 (Sur)">
+            <option value="Angel Contreras">Angel Contreras</option>
+            <option value="Edward Larreal">Edward Larreal</option>
+            <option value="Jesús Montiel">Jesús Montiel</option>
+          </optgroup>
+          <optgroup label="Zona 5 (COL / Sub-Sur)">
+            <option value="Jesus Rojas">Jesus Rojas</option>
+            <option value="Luis Zerpa">Luis Zerpa</option>
+          </optgroup>
+          <optgroup label="Zona 6 (Sub-Norte)">
+            <option value="Marlo Villalobos">Marlo Villalobos</option>
+            <option value="Ricardo Arrieta">Ricardo Arrieta</option>
+            <option value="Rommel Yanez">Rommel Yanez</option>
+          </optgroup>
+          <optgroup label="Zona Falcón">
+            <option value="Jose Millan">Jose Millan (Zona 1-F)</option>
+            <option value="Carlos Leal">Carlos Leal (Zona 1-F)</option>
+            <option value="Leomar León">Leomar León (Zona 2-F)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label><i class="fas fa-user-tie"></i> Solicitado por:</label>
+        <select id="filtroSolicitante" class="filter-select">
+          <option value="">Todos los Solicitantes</option>
+          <option value="Mariangelita Talavera (Gerencia)">Mariangelita Talavera (Gerencia)</option>
+          <option value="Centro de Contacto">Centro de Contacto</option>
+          <option value="Comercial ATC">Comercial ATC</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label><i class="fas fa-map-marker-alt"></i> Sector / Zona:</label>
+        <select id="filtroZona" class="filter-select">
+          <option value="">Todos los Sectores</option>
+          <optgroup label="Zona 3 (Oeste)">
+            <option value="Rotaria">Rotaria</option>
+            <option value="Las Tunas 1-5">Las Tunas (1 al 5)</option>
+            <option value="Barrio Bolívar">Barrio Bolívar</option>
+            <option value="Olivos 1-4">Olivos (1 al 4)</option>
+            <option value="San Isidro">San Isidro</option>
+            <option value="Centro">Centro</option>
+            <option value="Chamarreta">Chamarreta</option>
+            <option value="La Villa">La Villa (Zona 3)</option>
+            <option value="La Concepción">La Concepción (Foránea)</option>
+            <option value="Barranquitas">Barranquitas (Foránea)</option>
+          </optgroup>
+          <optgroup label="Zona 1 (Norte)">
+            <option value="Bella Vista">Bella Vista (MBV)</option>
+            <option value="Pomona">Pomona (MPM)</option>
+            <option value="Machiques">Machiques (MMC)</option>
+            <option value="San José las Piedras">San José las Piedras (MSJ)</option>
+          </optgroup>
+          <optgroup label="Zona 2 (Sur)">
+            <option value="Callao">El Callao / 24 Julio (MCS)</option>
+            <option value="La Cañada">La Cañada de Urdaneta (MCU)</option>
+            <option value="San Francisco">San Francisco</option>
+            <option value="Cortijos">Los Cortijos</option>
+            <option value="El Soler">El Soler</option>
+            <option value="Caujaro">Caujaro / Polar</option>
+            <option value="Zona Industrial">Zona Industrial</option>
+            <option value="El Gaitero">El Gaitero / Sur América</option>
+            <option value="Los Estanques">Los Estanques</option>
+            <option value="La Coromoto">La Coromoto</option>
+            <option value="San Luis">San Luis / El Bajo</option>
+            <option value="Sierra Maestra">Sierra Maestra</option>
+            <option value="Negro Primero">Negro Primero</option>
+          </optgroup>
+          <optgroup label="Zona 5 (Costa Oriental del Lago)">
+            <option value="Cabimas">Cabimas (MCB)</option>
+            <option value="Ciudad Ojeda">Ciudad Ojeda (MCO)</option>
+            <option value="Bachaquero">Bachaquero (MBQ)</option>
+            <option value="Mene Grande">Mene Grande (MMG)</option>
+            <option value="Los Puertos">Los Puertos de Altagracia (MPA)</option>
+          </optgroup>
+          <optgroup label="Zona 6 (Sub-Norte)">
+            <option value="Lago Caribe">Lago Caribe (MLC)</option>
+            <option value="Marite">Marite (MMR)</option>
+            <option value="Paraguaipoa">Paraguaipoa (MPG)</option>
+            <option value="Santa Cruz de Mara">Santa Cruz de Mara (MSC)</option>
+            <option value="El Moján">El Moján (MEM)</option>
+          </optgroup>
+          <optgroup label="Falcón 1 y 2">
+            <option value="Coro">Coro / La Vela (MFC/MVC)</option>
+            <option value="Dabajuro">Dabajuro / Mene Mauroa (MFD/MFM)</option>
+            <option value="Puerto Cumarebo">Puerto Cumarebo / Tocopero (FPC/FTP)</option>
+            <option value="Tucacas">Tucacas / Yaracal (FTU/FYR)</option>
+            <option value="Punto Fijo">Punto Fijo Sur / Norte (FPS/FPN)</option>
+            <option value="Pueblo Nuevo">Pueblo Nuevo / Adícora (FPU/FAD)</option>
+          </optgroup>
+          <option value="Otra Zona">Otra Zona</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label><i class="fas fa-flag"></i> Estado:</label>
+        <select id="filtroEstado" class="filter-select">
+          <option value="">Todos los Estados</option>
+          <option value="Escalado">Escalado (Sin avance)</option>
+          <option value="En Ruta / En Sitio">En Ruta / En Sitio</option>
+          <option value="En Ejecución">En Ejecución</option>
+          <option value="Resuelto">Resuelto</option>
+          <option value="Rebotado">Rebotado / Requiere Soporte</option>
+        </select>
+      </div>
+
+      <button id="btnLimpiarFiltros" class="btn-filter-reset" title="Restablecer filtros">
+        <i class="fas fa-undo"></i>
+      </button>
+    </div>
+
+    <!-- LISTA DE CASOS ESCALADOS -->
+    <div class="cases-header-bar">
+      <div class="section-title">
+        <i class="fas fa-list-check" style="color:var(--corp-active);"></i>
+        <span>Casos Escalados Activos (<span id="countFiltrados">0</span>)</span>
+      </div>
+      <div style="font-size: 0.85rem; color: var(--dash-text-muted);">
+        <i class="fas fa-sync-alt fa-spin" style="margin-right: 4px;"></i> Cronómetros en tiempo real
+      </div>
+    </div>
+
+    <div class="cases-grid" id="casesContainer"></div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <i class="fas fa-clipboard-check empty-icon"></i>
+      <h3>No hay casos escalados coincidentes</h3>
+      <p>Registra un nuevo caso con el botón superior o pega la orden de Six/Sigo/Odoo directamente.</p>
+    </div>
+  </main>
+
+  <!-- MODAL: NUEVO / EDITAR ESCALAMIENTO -->
+  <div class="modal-backdrop" id="modalCaseBackdrop" style="display:none;">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="modalTitle"><i class="fas fa-tools"></i> Registrar Escalamiento a Supervisor</h3>
+        <button class="btn-close-modal" id="btnCloseModal">&times;</button>
+      </div>
+
+      <!-- Pegado Mágico Inteligente -->
+      <div class="pegado-magico-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.85rem; font-weight:600; color:var(--corp-active);">
+            <i class="fas fa-magic"></i> Pegado Mágico (Copia de Six, Sigo, Odoo o WhatsApp y pega aquí):
+          </span>
+          <button type="button" class="btn-mini" id="btnAutoParse">Auto-Rellenar</button>
+        </div>
+        <textarea id="rawOrderText" class="filter-input" rows="2" placeholder="Pega aquí el texto de la orden o mensaje..."></textarea>
+      </div>
+
+      <form id="caseForm">
+        <input type="hidden" id="editCaseId">
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label>N° de Orden *</label>
+            <input type="text" id="caseOrden" class="filter-input" placeholder="Ej: 315484 o 498085" required>
+          </div>
+
+          <div class="form-field">
+            <label>N° Ticket / Referencia (Zendesk/Sigo)</label>
+            <input type="text" id="caseTicket" class="filter-input" placeholder="Ej: 4225772">
+          </div>
+
+          <div class="form-field">
+            <label>Supervisor al que se le escaló *</label>
+            <select id="caseSupervisor" class="filter-select" required>
+              <optgroup label="Zona 3 (Oeste - Mantenimiento)">
+                <option value="Roberto Carrillo" selected>Roberto Carrillo (Mantenimiento)</option>
+                <option value="José Rías">José Rías (Suplente Zona 3)</option>
+                <option value="Jesús Vargas">Jesús Vargas (Vacaciones)</option>
+              </optgroup>
+              <optgroup label="Zona 1 (Norte)">
+                <option value="José Castillo">José Castillo</option>
+                <option value="Franchy Rodriguez">Franchy Rodriguez</option>
+                <option value="Bertin López">Bertin López (Vacaciones)</option>
+                <option value="Mario Valladares">Mario Valladares (Suplente)</option>
+                <option value="Randy Romero">Randy Romero</option>
+              </optgroup>
+              <optgroup label="Zona 2 (Sur)">
+                <option value="Angel Contreras">Angel Contreras</option>
+                <option value="Edward Larreal">Edward Larreal</option>
+                <option value="Jesús Montiel">Jesús Montiel</option>
+              </optgroup>
+              <optgroup label="Zona 5 (COL / Sub-Sur)">
+                <option value="Jesus Rojas">Jesus Rojas</option>
+                <option value="Luis Zerpa">Luis Zerpa</option>
+              </optgroup>
+              <optgroup label="Zona 6 (Sub-Norte)">
+                <option value="Marlo Villalobos">Marlo Villalobos</option>
+                <option value="Ricardo Arrieta">Ricardo Arrieta</option>
+                <option value="Rommel Yanez">Rommel Yanez</option>
+              </optgroup>
+              <optgroup label="Zona Falcón">
+                <option value="Jose Millan">Jose Millan (Zona 1-F)</option>
+                <option value="Carlos Leal">Carlos Leal (Zona 1-F)</option>
+                <option value="Leomar León">Leomar León (Zona 2-F)</option>
+              </optgroup>
+              <option value="Otro Supervisor">Otro Supervisor...</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>MDT / NAP / Caja *</label>
+            <input type="text" id="caseMdt" class="filter-input" placeholder="Ej: MLV003 o MLT072" required>
+          </div>
+
+          <div class="form-field">
+            <label>Sector / Zona *</label>
+            <select id="caseZona" class="filter-select" required>
+          <option value="" disabled>Seleccionar Sector / Zona...</option>
+          <optgroup label="Zona 3 (Oeste)">
+            <option value="Rotaria">Rotaria</option>
+            <option value="Las Tunas 1-5">Las Tunas (1 al 5)</option>
+            <option value="Barrio Bolívar">Barrio Bolívar</option>
+            <option value="Olivos 1-4">Olivos (1 al 4)</option>
+            <option value="San Isidro">San Isidro</option>
+            <option value="Centro">Centro</option>
+            <option value="Chamarreta">Chamarreta</option>
+            <option value="La Villa">La Villa (Zona 3)</option>
+            <option value="La Concepción">La Concepción (Foránea)</option>
+            <option value="Barranquitas">Barranquitas (Foránea)</option>
+          </optgroup>
+          <optgroup label="Zona 1 (Norte)">
+            <option value="Bella Vista">Bella Vista (MBV)</option>
+            <option value="Pomona">Pomona (MPM)</option>
+            <option value="Machiques">Machiques (MMC)</option>
+            <option value="San José las Piedras">San José las Piedras (MSJ)</option>
+          </optgroup>
+          <optgroup label="Zona 2 (Sur)">
+            <option value="Callao">El Callao / 24 Julio (MCS)</option>
+            <option value="La Cañada">La Cañada de Urdaneta (MCU)</option>
+            <option value="San Francisco">San Francisco</option>
+            <option value="Cortijos">Los Cortijos</option>
+            <option value="El Soler">El Soler</option>
+            <option value="Caujaro">Caujaro / Polar</option>
+            <option value="Zona Industrial">Zona Industrial</option>
+            <option value="El Gaitero">El Gaitero / Sur América</option>
+            <option value="Los Estanques">Los Estanques</option>
+            <option value="La Coromoto">La Coromoto</option>
+            <option value="San Luis">San Luis / El Bajo</option>
+            <option value="Sierra Maestra">Sierra Maestra</option>
+            <option value="Negro Primero">Negro Primero</option>
+          </optgroup>
+          <optgroup label="Zona 5 (Costa Oriental del Lago)">
+            <option value="Cabimas">Cabimas (MCB)</option>
+            <option value="Ciudad Ojeda">Ciudad Ojeda (MCO)</option>
+            <option value="Bachaquero">Bachaquero (MBQ)</option>
+            <option value="Mene Grande">Mene Grande (MMG)</option>
+            <option value="Los Puertos">Los Puertos de Altagracia (MPA)</option>
+          </optgroup>
+          <optgroup label="Zona 6 (Sub-Norte)">
+            <option value="Lago Caribe">Lago Caribe (MLC)</option>
+            <option value="Marite">Marite (MMR)</option>
+            <option value="Paraguaipoa">Paraguaipoa (MPG)</option>
+            <option value="Santa Cruz de Mara">Santa Cruz de Mara (MSC)</option>
+            <option value="El Moján">El Moján (MEM)</option>
+          </optgroup>
+          <optgroup label="Falcón 1 y 2">
+            <option value="Coro">Coro / La Vela (MFC/MVC)</option>
+            <option value="Dabajuro">Dabajuro / Mene Mauroa (MFD/MFM)</option>
+            <option value="Puerto Cumarebo">Puerto Cumarebo / Tocopero (FPC/FTP)</option>
+            <option value="Tucacas">Tucacas / Yaracal (FTU/FYR)</option>
+            <option value="Punto Fijo">Punto Fijo Sur / Norte (FPS/FPN)</option>
+            <option value="Pueblo Nuevo">Pueblo Nuevo / Adícora (FPU/FAD)</option>
+          </optgroup>
+          <option value="Otra Zona">Otra Zona</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Cuadrilla en Sitio / Técnico Asignado *</label>
+            <input type="text" id="caseCuadrilla" class="filter-input" placeholder="Ej: Luis Gómez / La Villa Zona 3" required>
+          </div>
+
+          <div class="form-field">
+            <label>¿Quién solicitó el caso? *</label>
+            <input type="text" id="caseSolicitadoPor" class="filter-input" placeholder="Ej: Cecilia Jenny Espinoza / Mariangely Talavera" required>
+          </div>
+
+          <div class="form-field">
+            <label>Cliente / Abonado</label>
+            <input type="text" id="caseCliente" class="filter-input" placeholder="Nombre y apellido del abonado">
+          </div>
+
+          <div class="form-field">
+            <label>Cédula / Identificación</label>
+            <input type="text" id="caseCedula" class="filter-input" placeholder="Ej: 12344292">
+          </div>
+
+          <div class="form-field">
+            <label>Teléfono de Contacto</label>
+            <input type="text" id="caseTelefono" class="filter-input" placeholder="Ej: 0412-7860689">
+          </div>
+
+          <div class="form-field">
+            <label>Nivel de Prioridad *</label>
+            <select id="casePrioridad" class="filter-select" required>
+              <option value="CRÍTICA">🚨 CRÍTICA (LOS Masivo / Fibra Rota)</option>
+              <option value="ALTA">⚠️ ALTA (Comercio / Caída Total)</option>
+              <option value="MEDIA" selected>🟡 MEDIA (Avería Individual / Novedad)</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Estado Actual *</label>
+            <select id="caseEstado" class="filter-select" required onchange="handleEstadoChange(this.value)">
+              <option value="Escalado">Escalado (Esperando respuesta)</option>
+              <option value="En Ruta / En Sitio">En Ruta / En Sitio</option>
+              <option value="En Ejecución">En Ejecución (Trabajando)</option>
+              <option value="Diferido">⏰ Diferido / Pospuesto con Alerta</option>
+              <option value="Resuelto">✅ Resuelto</option>
+              <option value="Rebotado">❌ Rebotado</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dirección de Servicio -->
+        <div class="form-field" style="margin-top:10px;">
+          <label>Dirección del Servicio / Punto de Referencia</label>
+          <input type="text" id="caseDireccion" class="filter-input" placeholder="Ej: Los Prados, a tres casas de la base de misiones">
+        </div>
+
+        <!-- Campos Condicionales de Caso Diferido -->
+        <div id="diferidoFieldsContainer" style="display:none; background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:8px; padding:12px; margin-top:12px;">
+          <div style="font-size:0.85rem; font-weight:700; color:#f59e0b; margin-bottom:8px;">
+            ⏰ Programación de Caso Diferido (Con Alerta Horaria)
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div class="form-field">
+              <label>Fecha Reanudación</label>
+              <input type="date" id="caseFechaDiferido" class="filter-input">
+            </div>
+            <div class="form-field">
+              <label>Hora Programada</label>
+              <input type="time" id="caseHoraDiferido" class="filter-input" value="14:00">
+            </div>
+            <div class="form-field">
+              <label>Causa del Diferimiento</label>
+              <select id="caseMotivoDiferido" class="filter-select">
+                <option value="Cliente ausente">Cliente ausente</option>
+                <option value="Pospuesto por cliente para la tarde">Pospuesto por cliente para la tarde</option>
+                <option value="Lluvia / Clima adverso">Lluvia / Clima adverso</option>
+                <option value="Falta de material / Conectores">Falta de material / Conectores</option>
+                <option value="Escalado a Planta Externa">Escalado a Planta Externa</option>
+                <option value="Falta de acceso a poste / azotea">Falta de acceso a poste / azotea</option>
+                <option value="Otro">Otro motivo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Motivo Estandarizado -->
+        <div class="form-field" style="margin-top:12px;">
+          <label>Falla o Motivo de Operación *</label>
+          <select id="caseMotivoSelect" class="filter-select" onchange="handleMotivoChange(this.value)" required>
+            <option value="Reubicación de equipo / acometida">Reubicación de equipo / acometida</option>
+            <option value="Sin servicio / LOS Rojo">Sin servicio / LOS Rojo</option>
+            <option value="Lentitud / Alta atenuación">Lentitud / Alta atenuación (Splitter/Fibra)</option>
+            <option value="Instalación de servicio por reconexión (cliente recuperado)">Instalación por reconexión (cliente recuperado)</option>
+            <option value="Instalación nueva">Instalación nueva</option>
+            <option value="Cambio de equipo (ONT / Router)">Cambio de equipo (ONT / Router)</option>
+            <option value="Corte de fibra / Daño físico en acometida">Corte de fibra / Daño físico en acometida</option>
+            <option value="Revisión de red interna / WiFi">Revisión de red interna / WiFi</option>
+            <option value="Falla de NAP / MDT sin señal">Falla de NAP / MDT sin señal</option>
+            <option value="Otro">Otro motivo (Especificar abajo)...</option>
+          </select>
+          <input type="text" id="caseMotivoDetalle" class="filter-input" placeholder="Escribe el motivo específico..." style="margin-top:6px; display:none;">
+        </div>
+
+        <div class="form-field" style="margin-top:12px;">
+          <label>Avance Interno / Comentario de Operaciones</label>
+          <textarea id="caseAvance" class="filter-input" rows="2" placeholder="Ej: Se pasó novedad a Roberto a las 11:20 AM. Cuadrilla revisando splitters..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btnCancelModal">Cancelar</button>
+          <button type="submit" class="btn-action" style="background:var(--corp-active); color:#fff;">
+            <i class="fas fa-save"></i> Guardar Caso
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACIÓN NUBE GOOGLE SHEETS -->
+  <div class="modal-backdrop" id="modalCloudBackdrop" style="display:none;">
+    <div class="modal-window" style="max-width:520px;">
+      <div class="modal-header">
+        <h3><i class="fas fa-cloud"></i> Conexión Nube Google Sheets</h3>
+        <button class="btn-close-modal" id="btnCloseCloudModal">&times;</button>
+      </div>
+      <div style="padding:16px;">
+        <p style="font-size:0.85rem; color:var(--dash-text-muted); margin-bottom:12px;">
+          Pega el enlace de tu Web App de Google Apps Script (el que termina en <code>/exec</code>) para sincronizar en tiempo real con todos los despachadores y supervisores de Airtek.
+        </p>
+        <div class="form-field" style="margin-bottom:14px;">
+          <label>URL de Apps Script (/exec)</label>
+          <input type="url" id="inputCloudUrl" class="filter-input" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-cancel" id="btnCancelCloudModal" style="flex:1;">Cerrar</button>
+          <button type="button" class="btn-action" id="btnSaveCloudUrl" style="flex:1; background:var(--corp-active); color:#fff;">
+            <i class="fas fa-save"></i> Guardar y Conectar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRA DE ACCIÓN RÁPIDA MÓVIL (VISIBLE EN CELULARES) -->
+  <nav class="mobile-bottom-bar" id="mobileBottomBar">
+    <button id="btnMobileQuickPaste" class="mobile-bar-btn" title="Pegar orden del portapapeles">
+      <i class="fas fa-paste"></i>
+      <span>Pegar Orden</span>
+    </button>
+    <button id="btnMobileNewCase" class="mobile-bar-btn primary" title="Nuevo caso de escalamiento">
+      <i class="fas fa-plus"></i>
+      <span>Nuevo</span>
+    </button>
+    <button id="btnMobileSync" class="mobile-bar-btn" title="Sincronizar con Google Sheets">
+      <i class="fas fa-sync-alt"></i>
+      <span>Sincronizar</span>
+    </button>
+    <button id="btnMobileWhatsApp" class="mobile-bar-btn success" title="Generar reporte WhatsApp">
+      <i class="fab fa-whatsapp"></i>
+      <span>Reporte</span>
+    </button>
+  </nav>
+
+  <script src="sics_dict.js?v=20261015"></script>
+  <script src="app.js?v=20261016_android"></script>
+
+  <!-- REGISTRO DEL SERVICE WORKER PWA EN ANDROID -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('[SICS PWA] Service Worker registrado con éxito:', reg.scope))
+          .catch((err) => console.warn('[SICS PWA] Error al registrar Service Worker:', err));
+      });
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btnInstall = document.getElementById('btnInstallPwa');
+      if (btnInstall) {
+        btnInstall.style.display = 'inline-flex';
+        btnInstall.onclick = async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('[SICS PWA] Elección del usuario:', outcome);
+          deferredPrompt = null;
+          btnInstall.style.display = 'none';
+        };
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('[SICS PWA] ¡SICS instalado como aplicación nativa en Android!');
+      const btnInstall = document.getElementById('btnInstallPwa');
+      if (btnInstall) btnInstall.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
+

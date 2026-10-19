@@ -1,0 +1,32 @@
+{
+  "name": "SICS Airtek — Control de Red y Escalamientos",
+  "short_name": "SICS Airtek",
+  "description": "Sistema de Control Operativo de Red, Escalamiento a Supervisores y Despacho de Cuadrillas para Airtek Internet (Zona 3).",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
