@@ -31,13 +31,13 @@
     <div class="header-brand">
       <i class="fas fa-tools brand-icon" style="color: #f59e0b;"></i>
       <div>
-        <span class="brand-text">SICS Mantenimiento & Zona 3</span>
-        <span class="brand-sub">Escalamientos a Supervisores | Control y Seguimiento</span>
+        <span class="brand-text">SICS Mantenimiento & Control Operativo</span>
+        <span class="brand-sub">Sistema de Control y Seguimiento · Todas las Zonas</span>
       </div>
     </div>
 
     <!-- KPIs Rápidos en Header -->
-    <div style="display:flex; align-items:center; gap:16px;">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
       <div class="kpi-pill" title="Casos pendientes de resolución">
         <i class="fas fa-hourglass-half" style="color:#f59e0b;"></i>
         <span>Pendientes:</span>
@@ -48,15 +48,28 @@
         <span>Críticos:</span>
         <strong id="kpiCriticos" style="color:#ef4444;">0</strong>
       </div>
-      <div class="kpi-pill" title="Casos resueltos en el turno">
+      <div class="kpi-pill" title="Casos resueltos / cumplidos">
         <i class="fas fa-check-circle" style="color:#10b981;"></i>
-        <span>Resueltos:</span>
+        <span>Cumplidos:</span>
         <strong id="kpiResueltos">0</strong>
+      </div>
+      <div class="kpi-pill kpi-pill-alarm" id="headerNextAlarmPill" title="Próxima visita reprogramada / pausada con alarma">
+        <i class="far fa-bell" style="color:#0ea5e9;" id="headerNextAlarmIcon"></i>
+        <span>Próx. Alerta:</span>
+        <strong id="kpiNextAlarmTime" style="color:#38bdf8;">Sin casos</strong>
       </div>
     </div>
 
     <!-- Acciones Globales -->
     <div class="header-actions">
+      <!-- Control de Sonido de Alarma -->
+      <button id="btnSoundToggle" class="control-btn-circle" title="Sonido de Alarma Insistente: Activado">
+        <i class="fas fa-volume-up" id="soundIcon" style="color:var(--c-info);"></i>
+      </button>
+      <button id="btnTestSound" class="control-btn-circle" title="Probar Alarma Sonora">
+        <i class="fas fa-bell" style="color:#f59e0b;"></i>
+      </button>
+
       <button class="btn-action" id="btnInstallPwa" style="display:none; background:#10b981; color:#fff;" title="Instalar aplicación en tu teléfono Android">
         <i class="fas fa-download"></i> Instalar App
       </button>
@@ -80,6 +93,24 @@
       </button>
     </div>
   </header>
+
+  <!-- PESTAÑAS SICS (Bandeja Principal, Cumplidas, Canceladas, Pausadas) -->
+  <div class="sics-tabs-header-wrapper">
+    <div class="sics-tabs-header">
+      <button class="sics-tab-btn active" id="tabBtnPrincipal" data-tab="principal">
+        <i class="fas fa-inbox"></i> Bandeja Principal <span class="tab-badge" id="tabBadgePrincipal">0</span>
+      </button>
+      <button class="sics-tab-btn" id="tabBtnCumplidas" data-tab="cumplidas">
+        <i class="fas fa-check-circle"></i> Cumplidas <span class="tab-badge" id="tabBadgeCumplidas">0</span>
+      </button>
+      <button class="sics-tab-btn" id="tabBtnCanceladas" data-tab="canceladas">
+        <i class="fas fa-ban"></i> Canceladas <span class="tab-badge" id="tabBadgeCanceladas">0</span>
+      </button>
+      <button class="sics-tab-btn" id="tabBtnPausadas" data-tab="pausadas">
+        <i class="fas fa-pause-circle"></i> Pausadas <span class="tab-badge" id="tabBadgePausadas">0</span>
+      </button>
+    </div>
+  </div>
 
   <!-- PANEL DE FILTROS Y BÚSQUEDA -->
   <main class="main-content">
@@ -131,72 +162,37 @@
         <label><i class="fas fa-user-tie"></i> Solicitado por:</label>
         <select id="filtroSolicitante" class="filter-select">
           <option value="">Todos los Solicitantes</option>
-          <option value="Mariangelita Talavera (Gerencia)">Mariangelita Talavera (Gerencia)</option>
+          <option value="Jeremi Gil">Jeremi Gil (Proyectos / Presidencia)</option>
+          <option value="Mariangelita Talavera">Mariangelita Talavera (Gerencia)</option>
           <option value="Centro de Contacto">Centro de Contacto</option>
           <option value="Comercial ATC">Comercial ATC</option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label><i class="fas fa-map-marker-alt"></i> Sector / Zona:</label>
+        <label><i class="fas fa-map-marker-alt"></i> Zona / Sector:</label>
         <select id="filtroZona" class="filter-select">
-          <option value="">Todos los Sectores</option>
-          <optgroup label="Zona 3 (Oeste)">
+          <option value="">Todas las Zonas</option>
+          <optgroup label="Zonas de Mantenimiento">
+            <option value="Zona 3-Z">Zona 3-Z (Oeste / San Rafael / Rotaria)</option>
+            <option value="Zona 1-Z">Zona 1-Z (Norte / Bella Vista / Pomona)</option>
+            <option value="Zona 2-Z">Zona 2-Z (Sur / Callao / La Cañada)</option>
+            <option value="Zona 5-Z">Zona 5-Z (COL / Cabimas / Ojeda)</option>
+            <option value="Zona 6-Z">Zona 6-Z (Sub-Norte / Mara / Moján)</option>
+            <option value="Zona 1-F">Zona 1-F (Falcón 1 / Coro / Dabajuro)</option>
+            <option value="Zona 2-F">Zona 2-F (Falcón 2 / Punto Fijo)</option>
+          </optgroup>
+          <optgroup label="Sectores Frecuentes">
             <option value="Rotaria">Rotaria</option>
             <option value="Las Tunas 1-5">Las Tunas (1 al 5)</option>
             <option value="Barrio Bolívar">Barrio Bolívar</option>
             <option value="Olivos 1-4">Olivos (1 al 4)</option>
             <option value="San Isidro">San Isidro</option>
-            <option value="Centro">Centro</option>
-            <option value="Chamarreta">Chamarreta</option>
-            <option value="La Villa">La Villa (Zona 3)</option>
-            <option value="La Concepción">La Concepción (Foránea)</option>
-            <option value="Barranquitas">Barranquitas (Foránea)</option>
+            <option value="San Rafael">San Rafael / Centro</option>
+            <option value="La Villa">La Villa</option>
+            <option value="La Concepción">La Concepción</option>
+            <option value="Barranquitas">Barranquitas</option>
           </optgroup>
-          <optgroup label="Zona 1 (Norte)">
-            <option value="Bella Vista">Bella Vista (MBV)</option>
-            <option value="Pomona">Pomona (MPM)</option>
-            <option value="Machiques">Machiques (MMC)</option>
-            <option value="San José las Piedras">San José las Piedras (MSJ)</option>
-          </optgroup>
-          <optgroup label="Zona 2 (Sur)">
-            <option value="Callao">El Callao / 24 Julio (MCS)</option>
-            <option value="La Cañada">La Cañada de Urdaneta (MCU)</option>
-            <option value="San Francisco">San Francisco</option>
-            <option value="Cortijos">Los Cortijos</option>
-            <option value="El Soler">El Soler</option>
-            <option value="Caujaro">Caujaro / Polar</option>
-            <option value="Zona Industrial">Zona Industrial</option>
-            <option value="El Gaitero">El Gaitero / Sur América</option>
-            <option value="Los Estanques">Los Estanques</option>
-            <option value="La Coromoto">La Coromoto</option>
-            <option value="San Luis">San Luis / El Bajo</option>
-            <option value="Sierra Maestra">Sierra Maestra</option>
-            <option value="Negro Primero">Negro Primero</option>
-          </optgroup>
-          <optgroup label="Zona 5 (Costa Oriental del Lago)">
-            <option value="Cabimas">Cabimas (MCB)</option>
-            <option value="Ciudad Ojeda">Ciudad Ojeda (MCO)</option>
-            <option value="Bachaquero">Bachaquero (MBQ)</option>
-            <option value="Mene Grande">Mene Grande (MMG)</option>
-            <option value="Los Puertos">Los Puertos de Altagracia (MPA)</option>
-          </optgroup>
-          <optgroup label="Zona 6 (Sub-Norte)">
-            <option value="Lago Caribe">Lago Caribe (MLC)</option>
-            <option value="Marite">Marite (MMR)</option>
-            <option value="Paraguaipoa">Paraguaipoa (MPG)</option>
-            <option value="Santa Cruz de Mara">Santa Cruz de Mara (MSC)</option>
-            <option value="El Moján">El Moján (MEM)</option>
-          </optgroup>
-          <optgroup label="Falcón 1 y 2">
-            <option value="Coro">Coro / La Vela (MFC/MVC)</option>
-            <option value="Dabajuro">Dabajuro / Mene Mauroa (MFD/MFM)</option>
-            <option value="Puerto Cumarebo">Puerto Cumarebo / Tocopero (FPC/FTP)</option>
-            <option value="Tucacas">Tucacas / Yaracal (FTU/FYR)</option>
-            <option value="Punto Fijo">Punto Fijo Sur / Norte (FPS/FPN)</option>
-            <option value="Pueblo Nuevo">Pueblo Nuevo / Adícora (FPU/FAD)</option>
-          </optgroup>
-          <option value="Otra Zona">Otra Zona</option>
         </select>
       </div>
 
@@ -204,11 +200,12 @@
         <label><i class="fas fa-flag"></i> Estado:</label>
         <select id="filtroEstado" class="filter-select">
           <option value="">Todos los Estados</option>
-          <option value="Escalado">Escalado (Sin avance)</option>
-          <option value="En Ruta / En Sitio">En Ruta / En Sitio</option>
-          <option value="En Ejecución">En Ejecución</option>
-          <option value="Resuelto">Resuelto</option>
-          <option value="Rebotado">Rebotado / Requiere Soporte</option>
+          <option value="Pendiente">Pendiente</option>
+          <option value="En ejecucion">En ejecucion</option>
+          <option value="Pausa">Pausa (Diferida / Reprogramada)</option>
+          <option value="Realizado">Realizado / Cumplido</option>
+          <option value="Cancelado">Cancelado</option>
+          <option value="Cancelado/Espera">Cancelado/Espera</option>
         </select>
       </div>
 
@@ -217,14 +214,26 @@
       </button>
     </div>
 
+    <!-- BANNER PREVENTIVO DE ALARMA REPROGRAMADA -->
+    <div id="advanceAlarmBanner" class="advance-alarm-banner" style="display:none;">
+      <i class="fas fa-bell-ring fa-shake" style="color:#f59e0b; font-size:1.2rem;"></i>
+      <div id="advanceAlarmBannerText" style="flex:1;">
+        <!-- Filled dynamically -->
+      </div>
+      <button type="button" class="btn-mini" id="btnAttendAdvanceAlarm" style="background:#f59e0b; color:#000; font-weight:700;">
+        Ver Caso
+      </button>
+      <button type="button" class="btn-close-mini" id="btnCloseAdvanceBanner">&times;</button>
+    </div>
+
     <!-- LISTA DE CASOS ESCALADOS -->
     <div class="cases-header-bar">
       <div class="section-title">
         <i class="fas fa-list-check" style="color:var(--corp-active);"></i>
-        <span>Casos Escalados Activos (<span id="countFiltrados">0</span>)</span>
+        <span id="tabSectionTitle">Bandeja Principal</span> (<span id="countFiltrados">0</span>)
       </div>
       <div style="font-size: 0.85rem; color: var(--dash-text-muted);">
-        <i class="fas fa-sync-alt fa-spin" style="margin-right: 4px;"></i> Cronómetros en tiempo real
+        <i class="fas fa-sync-alt fa-spin" style="margin-right: 4px;"></i> Vigilancia activa y recordatorios en vivo
       </div>
     </div>
 
@@ -232,42 +241,158 @@
 
     <div id="emptyState" class="empty-state" style="display:none;">
       <i class="fas fa-clipboard-check empty-icon"></i>
-      <h3>No hay casos escalados coincidentes</h3>
-      <p>Registra un nuevo caso con el botón superior o pega la orden de Six/Sigo/Odoo directamente.</p>
+      <h3>No hay casos en esta bandeja</h3>
+      <p>Registra un nuevo caso con el botón superior o pega la orden de Six/Sigo/Odoo con el Pegado Mágico.</p>
     </div>
   </main>
 
-  <!-- MODAL: NUEVO / EDITAR ESCALAMIENTO -->
+  <!-- MODAL: NUEVO / EDITAR ESCALAMIENTO SICS (IDÉNTICO A SISTEMA SICS) -->
   <div class="modal-backdrop" id="modalCaseBackdrop" style="display:none;">
-    <div class="modal-window">
+    <div class="modal-window sics-modal-window">
       <div class="modal-header">
-        <h3 id="modalTitle"><i class="fas fa-tools"></i> Registrar Escalamiento a Supervisor</h3>
+        <h3 id="modalTitle"><i class="fas fa-edit"></i> <span id="modalTitleText">Editando Caso</span></h3>
         <button class="btn-close-modal" id="btnCloseModal">&times;</button>
       </div>
 
-      <!-- Pegado Mágico Inteligente -->
+      <!-- Pegado Mágico Inteligente 100% Preciso -->
       <div class="pegado-magico-box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span style="font-size:0.85rem; font-weight:600; color:var(--corp-active);">
-            <i class="fas fa-magic"></i> Pegado Mágico (Copia de Six, Sigo, Odoo o WhatsApp y pega aquí):
+          <span style="font-size:0.85rem; font-weight:700; color:#38bdf8;">
+            <i class="fas fa-magic"></i> Pegado Mágico Inteligente SICS / Odoo (Pega aquí cualquier orden):
           </span>
-          <button type="button" class="btn-mini" id="btnAutoParse">Auto-Rellenar</button>
+          <button type="button" class="btn-mini" id="btnAutoParse" style="background:#0284c7; color:#fff;">Auto-Rellenar</button>
         </div>
-        <textarea id="rawOrderText" class="filter-input" rows="2" placeholder="Pega aquí el texto de la orden o mensaje..."></textarea>
+        <textarea id="rawOrderText" class="filter-input" rows="2" placeholder="Pega aquí el encabezado de Odoo (F-OPE-AIRTEK...), Diferida SICS o mensaje..."></textarea>
       </div>
 
       <form id="caseForm">
         <input type="hidden" id="editCaseId">
+        <input type="hidden" id="caseTicket">
 
-        <div class="form-grid">
+        <div class="form-grid sics-form-grid">
+          <!-- Fila 1: Fecha de Registro & Registrado por -->
           <div class="form-field">
-            <label>N° de Orden *</label>
-            <input type="text" id="caseOrden" class="filter-input" placeholder="Ej: 315484 o 498085" required>
+            <label>Fecha de Registro *</label>
+            <input type="date" id="caseFechaRegistro" class="filter-input" required>
+          </div>
+          <div class="form-field">
+            <label>Registrado por</label>
+            <input type="text" id="caseRegistradoPor" class="filter-input" value="Moises Gonzalez" placeholder="Nombre del analista">
+          </div>
+
+          <!-- Fila 2: Cédula Cliente & Nombre Cliente -->
+          <div class="form-field">
+            <label>Cédula Cliente</label>
+            <input type="text" id="caseCedula" class="filter-input" placeholder="Ej: 26310051">
+          </div>
+          <div class="form-field">
+            <label>Nombre Cliente *</label>
+            <input type="text" id="caseCliente" class="filter-input" placeholder="Nombre completo del cliente o C.I." required>
+          </div>
+
+          <!-- Fila 3: Orden Origen (Cancelada) & Orden Final (Generada) & Zona -->
+          <div class="form-field">
+            <label>Orden Origen (Cancelada) *</label>
+            <input type="text" id="caseOrden" class="filter-input" placeholder="Ej: 496026 o 308816" required>
+          </div>
+          <div class="form-field">
+            <label>Orden Final (Generada)</label>
+            <input type="text" id="caseOrdenFinal" class="filter-input" placeholder="Ej: cumplida bajo la orden original o N°">
           </div>
 
           <div class="form-field">
-            <label>N° Ticket / Referencia (Zendesk/Sigo)</label>
-            <input type="text" id="caseTicket" class="filter-input" placeholder="Ej: 4225772">
+            <label>Zona *</label>
+            <select id="caseZona" class="filter-select" required>
+              <option value="" disabled>Seleccionar Zona...</option>
+              <optgroup label="Zonas de Mantenimiento SICS">
+                <option value="Zona 3-Z" selected>Zona 3-Z (Oeste)</option>
+                <option value="Zona 1-Z">Zona 1-Z (Norte)</option>
+                <option value="Zona 2-Z">Zona 2-Z (Sur)</option>
+                <option value="Zona 5-Z">Zona 5-Z (COL)</option>
+                <option value="Zona 6-Z">Zona 6-Z (Sub-Norte)</option>
+                <option value="Zona 1-F">Zona 1-F (Falcón 1)</option>
+                <option value="Zona 2-F">Zona 2-F (Falcón 2)</option>
+              </optgroup>
+              <optgroup label="Sectores / Nodos de Operación">
+                <option value="Rotaria">Rotaria (Zona 3)</option>
+                <option value="Las Tunas 1-5">Las Tunas 1-5 (Zona 3)</option>
+                <option value="Olivos 1-4">Olivos 1-4 (Zona 3)</option>
+                <option value="San Rafael">San Rafael / Centro (Zona 3)</option>
+                <option value="La Villa">La Villa (Zona 3)</option>
+                <option value="La Concepción">La Concepción (Zona 3)</option>
+                <option value="Barranquitas">Barranquitas (Zona 3)</option>
+                <option value="Bella Vista">Bella Vista (Zona 1)</option>
+                <option value="Pomona">Pomona (Zona 1)</option>
+                <option value="Callao">Callao / 24 Julio (Zona 2)</option>
+                <option value="La Cañada">La Cañada (Zona 2)</option>
+                <option value="Cabimas">Cabimas (Zona 5)</option>
+                <option value="Ciudad Ojeda">Ciudad Ojeda (Zona 5)</option>
+                <option value="Lago Caribe">Lago Caribe (Zona 6)</option>
+                <option value="Coro">Coro (Falcón 1)</option>
+                <option value="Punto Fijo">Punto Fijo (Falcón 2)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Fila 4: Motivo & Fecha Reprogramada -->
+          <div class="form-field">
+            <label>Motivo *</label>
+            <select id="caseMotivoSelect" class="filter-select" required onchange="handleMotivoChange(this.value)">
+              <option value="" disabled>Seleccione...</option>
+              <optgroup label="Motivos Oficiales SICS">
+                <option value="Visita reprogramada">Visita reprogramada</option>
+                <option value="Cliente no indicó día de disponibilidad">Cliente no indicó día de disponibilidad</option>
+                <option value="No Localizado">No Localizado</option>
+                <option value="Cliente No Requiere Visita">Cliente No Requiere Visita</option>
+                <option value="Requiere obra civil cliente">Requiere obra civil cliente</option>
+                <option value="Acceso condominio">Acceso condominio</option>
+                <option value="Requiere postes (cliente)">Requiere postes (cliente)</option>
+                <option value="Caso VGT">Caso VGT</option>
+                <option value="Requiere construcción Mtto">Requiere construcción Mtto</option>
+                <option value="Trabajos Mtto">Trabajos Mtto</option>
+              </optgroup>
+              <optgroup label="Operaciones de Red y Despacho">
+                <option value="Instalación por reconexión (cliente recuperado)">Instalación por reconexión (cliente recuperado)</option>
+                <option value="Sin servicio / LOS Rojo">Sin servicio / LOS Rojo</option>
+                <option value="Reubicación de equipo / acometida">Reubicación de equipo / acometida</option>
+                <option value="Lentitud / Alta atenuación">Lentitud / Alta atenuación</option>
+                <option value="Corte de fibra / Daño físico en acometida">Corte de fibra / Daño físico en acometida</option>
+                <option value="Otro">Otro motivo...</option>
+              </optgroup>
+            </select>
+            <input type="text" id="caseMotivoDetalle" class="filter-input" placeholder="Escribe el motivo específico..." style="margin-top:6px; display:none;">
+          </div>
+
+          <div class="form-field">
+            <label>Fecha Reprogramada (Si aplica)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="date" id="caseFechaReprogramada" class="filter-input" style="flex:1;">
+              <input type="time" id="caseHoraReprogramada" class="filter-input" style="width:115px;" value="14:00" title="Hora de recordatorio / alarma">
+            </div>
+          </div>
+
+          <!-- Fila 5: Estatus & Gestionado por -->
+          <div class="form-field">
+            <label>Estatus *</label>
+            <select id="caseEstado" class="filter-select" required onchange="handleEstadoChange(this.value)">
+              <option value="Pendiente" selected>Pendiente</option>
+              <option value="Realizado">Realizado</option>
+              <option value="Cancelado">Cancelado</option>
+              <option value="Cancelado/Espera">Cancelado/Espera</option>
+              <option value="Pausa">Pausa</option>
+              <option value="En ejecucion">En ejecucion</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Gestionado por</label>
+            <input type="text" id="caseGestionadoPor" class="filter-input" value="Sin gestionar" placeholder="Sin gestionar o nombre del analista">
+          </div>
+
+          <!-- Fila 6: Detalles Operativos (MDT, Supervisor, Cuadrilla, Solicitante, Teléfono, Dirección) -->
+          <div class="form-field">
+            <label>MDT / NAP / Caja *</label>
+            <input type="text" id="caseMdt" class="filter-input" placeholder="Ej: MLV003 o MLT072" required>
           </div>
 
           <div class="form-field">
@@ -309,91 +434,13 @@
           </div>
 
           <div class="form-field">
-            <label>MDT / NAP / Caja *</label>
-            <input type="text" id="caseMdt" class="filter-input" placeholder="Ej: MLV003 o MLT072" required>
-          </div>
-
-          <div class="form-field">
-            <label>Sector / Zona *</label>
-            <select id="caseZona" class="filter-select" required>
-          <option value="" disabled>Seleccionar Sector / Zona...</option>
-          <optgroup label="Zona 3 (Oeste)">
-            <option value="Rotaria">Rotaria</option>
-            <option value="Las Tunas 1-5">Las Tunas (1 al 5)</option>
-            <option value="Barrio Bolívar">Barrio Bolívar</option>
-            <option value="Olivos 1-4">Olivos (1 al 4)</option>
-            <option value="San Isidro">San Isidro</option>
-            <option value="Centro">Centro</option>
-            <option value="Chamarreta">Chamarreta</option>
-            <option value="La Villa">La Villa (Zona 3)</option>
-            <option value="La Concepción">La Concepción (Foránea)</option>
-            <option value="Barranquitas">Barranquitas (Foránea)</option>
-          </optgroup>
-          <optgroup label="Zona 1 (Norte)">
-            <option value="Bella Vista">Bella Vista (MBV)</option>
-            <option value="Pomona">Pomona (MPM)</option>
-            <option value="Machiques">Machiques (MMC)</option>
-            <option value="San José las Piedras">San José las Piedras (MSJ)</option>
-          </optgroup>
-          <optgroup label="Zona 2 (Sur)">
-            <option value="Callao">El Callao / 24 Julio (MCS)</option>
-            <option value="La Cañada">La Cañada de Urdaneta (MCU)</option>
-            <option value="San Francisco">San Francisco</option>
-            <option value="Cortijos">Los Cortijos</option>
-            <option value="El Soler">El Soler</option>
-            <option value="Caujaro">Caujaro / Polar</option>
-            <option value="Zona Industrial">Zona Industrial</option>
-            <option value="El Gaitero">El Gaitero / Sur América</option>
-            <option value="Los Estanques">Los Estanques</option>
-            <option value="La Coromoto">La Coromoto</option>
-            <option value="San Luis">San Luis / El Bajo</option>
-            <option value="Sierra Maestra">Sierra Maestra</option>
-            <option value="Negro Primero">Negro Primero</option>
-          </optgroup>
-          <optgroup label="Zona 5 (Costa Oriental del Lago)">
-            <option value="Cabimas">Cabimas (MCB)</option>
-            <option value="Ciudad Ojeda">Ciudad Ojeda (MCO)</option>
-            <option value="Bachaquero">Bachaquero (MBQ)</option>
-            <option value="Mene Grande">Mene Grande (MMG)</option>
-            <option value="Los Puertos">Los Puertos de Altagracia (MPA)</option>
-          </optgroup>
-          <optgroup label="Zona 6 (Sub-Norte)">
-            <option value="Lago Caribe">Lago Caribe (MLC)</option>
-            <option value="Marite">Marite (MMR)</option>
-            <option value="Paraguaipoa">Paraguaipoa (MPG)</option>
-            <option value="Santa Cruz de Mara">Santa Cruz de Mara (MSC)</option>
-            <option value="El Moján">El Moján (MEM)</option>
-          </optgroup>
-          <optgroup label="Falcón 1 y 2">
-            <option value="Coro">Coro / La Vela (MFC/MVC)</option>
-            <option value="Dabajuro">Dabajuro / Mene Mauroa (MFD/MFM)</option>
-            <option value="Puerto Cumarebo">Puerto Cumarebo / Tocopero (FPC/FTP)</option>
-            <option value="Tucacas">Tucacas / Yaracal (FTU/FYR)</option>
-            <option value="Punto Fijo">Punto Fijo Sur / Norte (FPS/FPN)</option>
-            <option value="Pueblo Nuevo">Pueblo Nuevo / Adícora (FPU/FAD)</option>
-          </optgroup>
-          <option value="Otra Zona">Otra Zona</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label>Cuadrilla en Sitio / Técnico Asignado *</label>
-            <input type="text" id="caseCuadrilla" class="filter-input" placeholder="Ej: Luis Gómez / La Villa Zona 3" required>
+            <label>Cuadrilla en Sitio / Técnico Asignado</label>
+            <input type="text" id="caseCuadrilla" class="filter-input" placeholder="Ej: José Hernández o Por asignar">
           </div>
 
           <div class="form-field">
             <label>¿Quién solicitó el caso? *</label>
-            <input type="text" id="caseSolicitadoPor" class="filter-input" placeholder="Ej: Cecilia Jenny Espinoza / Mariangely Talavera" required>
-          </div>
-
-          <div class="form-field">
-            <label>Cliente / Abonado</label>
-            <input type="text" id="caseCliente" class="filter-input" placeholder="Nombre y apellido del abonado">
-          </div>
-
-          <div class="form-field">
-            <label>Cédula / Identificación</label>
-            <input type="text" id="caseCedula" class="filter-input" placeholder="Ej: 12344292">
+            <input type="text" id="caseSolicitadoPor" class="filter-input" placeholder="Ej: Jeremi Gil / Presidencia" required>
           </div>
 
           <div class="form-field">
@@ -409,85 +456,56 @@
               <option value="MEDIA" selected>🟡 MEDIA (Avería Individual / Novedad)</option>
             </select>
           </div>
-
-          <div class="form-field">
-            <label>Estado Actual *</label>
-            <select id="caseEstado" class="filter-select" required onchange="handleEstadoChange(this.value)">
-              <option value="Escalado">Escalado (Esperando respuesta)</option>
-              <option value="En Ruta / En Sitio">En Ruta / En Sitio</option>
-              <option value="En Ejecución">En Ejecución (Trabajando)</option>
-              <option value="Diferido">⏰ Diferido / Pospuesto con Alerta</option>
-              <option value="Resuelto">✅ Resuelto</option>
-              <option value="Rebotado">❌ Rebotado</option>
-            </select>
-          </div>
         </div>
 
         <!-- Dirección de Servicio -->
         <div class="form-field" style="margin-top:10px;">
           <label>Dirección del Servicio / Punto de Referencia</label>
-          <input type="text" id="caseDireccion" class="filter-input" placeholder="Ej: Los Prados, a tres casas de la base de misiones">
-        </div>
-
-        <!-- Campos Condicionales de Caso Diferido -->
-        <div id="diferidoFieldsContainer" style="display:none; background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:8px; padding:12px; margin-top:12px;">
-          <div style="font-size:0.85rem; font-weight:700; color:#f59e0b; margin-bottom:8px;">
-            ⏰ Programación de Caso Diferido (Con Alerta Horaria)
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-            <div class="form-field">
-              <label>Fecha Reanudación</label>
-              <input type="date" id="caseFechaDiferido" class="filter-input">
-            </div>
-            <div class="form-field">
-              <label>Hora Programada</label>
-              <input type="time" id="caseHoraDiferido" class="filter-input" value="14:00">
-            </div>
-            <div class="form-field">
-              <label>Causa del Diferimiento</label>
-              <select id="caseMotivoDiferido" class="filter-select">
-                <option value="Cliente ausente">Cliente ausente</option>
-                <option value="Pospuesto por cliente para la tarde">Pospuesto por cliente para la tarde</option>
-                <option value="Lluvia / Clima adverso">Lluvia / Clima adverso</option>
-                <option value="Falta de material / Conectores">Falta de material / Conectores</option>
-                <option value="Escalado a Planta Externa">Escalado a Planta Externa</option>
-                <option value="Falta de acceso a poste / azotea">Falta de acceso a poste / azotea</option>
-                <option value="Otro">Otro motivo</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Motivo Estandarizado -->
-        <div class="form-field" style="margin-top:12px;">
-          <label>Falla o Motivo de Operación *</label>
-          <select id="caseMotivoSelect" class="filter-select" onchange="handleMotivoChange(this.value)" required>
-            <option value="Reubicación de equipo / acometida">Reubicación de equipo / acometida</option>
-            <option value="Sin servicio / LOS Rojo">Sin servicio / LOS Rojo</option>
-            <option value="Lentitud / Alta atenuación">Lentitud / Alta atenuación (Splitter/Fibra)</option>
-            <option value="Instalación de servicio por reconexión (cliente recuperado)">Instalación por reconexión (cliente recuperado)</option>
-            <option value="Instalación nueva">Instalación nueva</option>
-            <option value="Cambio de equipo (ONT / Router)">Cambio de equipo (ONT / Router)</option>
-            <option value="Corte de fibra / Daño físico en acometida">Corte de fibra / Daño físico en acometida</option>
-            <option value="Revisión de red interna / WiFi">Revisión de red interna / WiFi</option>
-            <option value="Falla de NAP / MDT sin señal">Falla de NAP / MDT sin señal</option>
-            <option value="Otro">Otro motivo (Especificar abajo)...</option>
-          </select>
-          <input type="text" id="caseMotivoDetalle" class="filter-input" placeholder="Escribe el motivo específico..." style="margin-top:6px; display:none;">
+          <input type="text" id="caseDireccion" class="filter-input" placeholder="Ej: Sector Rotaria, calle 82 casa #12">
         </div>
 
         <div class="form-field" style="margin-top:12px;">
-          <label>Avance Interno / Comentario de Operaciones</label>
-          <textarea id="caseAvance" class="filter-input" rows="2" placeholder="Ej: Se pasó novedad a Roberto a las 11:20 AM. Cuadrilla revisando splitters..."></textarea>
+          <label>Comentarios / Observaciones</label>
+          <textarea id="caseAvance" class="filter-input" rows="2" placeholder="Escriba los detalles aquí (Opcional)..."></textarea>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-cancel" id="btnCancelModal">Cancelar</button>
-          <button type="submit" class="btn-action" style="background:var(--corp-active); color:#fff;">
+          <button type="submit" class="btn-action" style="background:#2563eb; color:#fff;">
             <i class="fas fa-save"></i> Guardar Caso
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE ALARMA INSISTENTE (PANTALLA COMPLETA / ALERTA CRÍTICA) -->
+  <div class="modal-backdrop alarm-modal-backdrop" id="modalAlarmOverlay" style="display:none;">
+    <div class="modal-window alarm-modal-window">
+      <div class="alarm-modal-header">
+        <div class="alarm-pulsing-icon"><i class="fas fa-bell"></i></div>
+        <div style="flex:1;">
+          <h3 style="color:#ef4444; font-size:1.3rem; margin:0; font-weight:900;">🚨 ¡ALARMA: CASO REPROGRAMADO EN TIEMPO!</h3>
+          <p style="color:#94a3b8; font-size:0.85rem; margin:3px 0 0 0;">Atención inmediata requerida para evitar retrasos en el despacho y cumplimiento</p>
+        </div>
+        <button class="btn-close-modal" id="btnDismissAlarmModal" title="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="alarm-modal-body" id="alarmModalContent">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="alarm-modal-footer">
+        <button type="button" class="btn-alarm-action btn-alarm-attend" id="btnAlarmAttend">
+          <i class="fas fa-bolt"></i> Atender Caso Ahora
+        </button>
+        <button type="button" class="btn-alarm-action btn-alarm-snooze" id="btnAlarmSnooze">
+          <i class="fas fa-history"></i> Posponer 15 Minutos
+        </button>
+        <button type="button" class="btn-alarm-action btn-alarm-mute" id="btnAlarmMute">
+          <i class="fas fa-volume-mute"></i> Silenciar Alarma
+        </button>
+      </div>
     </div>
   </div>
 
