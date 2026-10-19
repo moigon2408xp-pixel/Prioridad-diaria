@@ -39,20 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
     "MPG": { nodo: "Paraguaipoa", sector: "Paraguaipoa", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
     "MSC": { nodo: "Santa Cruz de Mara", sector: "Santa Cruz de Mara", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
     "MEM": { nodo: "El Moján", sector: "El Moján", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
-    // Falcón 1
-    "MFC": { nodo: "Coro", sector: "Coro", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "MVC": { nodo: "La Vela de Coro", sector: "La Vela", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "MFM": { nodo: "Mene Mauroa", sector: "Mene Mauroa", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "MFD": { nodo: "Dabajuro", sector: "Dabajuro", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "FPC": { nodo: "Puerto Cumarebo", sector: "Puerto Cumarebo", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "FTP": { nodo: "Tocopero", sector: "Tocopero", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "FYR": { nodo: "Yaracal", sector: "Yaracal", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    "FTU": { nodo: "Tucacas", sector: "Tucacas", zona: "Zona 1-F", supervisor: "Jose Millan" },
-    // Falcón 2
-    "FPS": { nodo: "Punto Fijo (SUR)", sector: "Punto Fijo Sur", zona: "Zona 2-F", supervisor: "Leomar León" },
-    "FPN": { nodo: "Punto Fijo (NORTE)", sector: "Punto Fijo Norte", zona: "Zona 2-F", supervisor: "Leomar León" },
-    "FPU": { nodo: "Pueblo Nuevo", sector: "Pueblo Nuevo", zona: "Zona 2-F", supervisor: "Leomar León" },
-    "FAD": { nodo: "Adícora", sector: "Adícora", zona: "Zona 2-F", supervisor: "Leomar León" }
+    // Falcón
+    "MFC": { nodo: "Coro", sector: "Coro", zona: "Falcón", supervisor: "Jose Millan" },
+    "MVC": { nodo: "La Vela de Coro", sector: "La Vela", zona: "Falcón", supervisor: "Jose Millan" },
+    "MFM": { nodo: "Mene Mauroa", sector: "Mene Mauroa", zona: "Falcón", supervisor: "Jose Millan" },
+    "MFD": { nodo: "Dabajuro", sector: "Dabajuro", zona: "Falcón", supervisor: "Jose Millan" },
+    "FPC": { nodo: "Puerto Cumarebo", sector: "Puerto Cumarebo", zona: "Falcón", supervisor: "Jose Millan" },
+    "FTP": { nodo: "Tocopero", sector: "Tocopero", zona: "Falcón", supervisor: "Jose Millan" },
+    "FYR": { nodo: "Yaracal", sector: "Yaracal", zona: "Falcón", supervisor: "Jose Millan" },
+    "FTU": { nodo: "Tucacas", sector: "Tucacas", zona: "Falcón", supervisor: "Jose Millan" },
+    "FPS": { nodo: "Punto Fijo (SUR)", sector: "Punto Fijo Sur", zona: "Falcón", supervisor: "Leomar León" },
+    "FPN": { nodo: "Punto Fijo (NORTE)", sector: "Punto Fijo Norte", zona: "Falcón", supervisor: "Leomar León" },
+    "FPU": { nodo: "Pueblo Nuevo", sector: "Pueblo Nuevo", zona: "Falcón", supervisor: "Leomar León" },
+    "FAD": { nodo: "Adícora", sector: "Adícora", zona: "Falcón", supervisor: "Leomar León" }
   };
 
   const MDT_SECTOR_MAP = (window.MDT_SECTOR_MAP && Object.keys(window.MDT_SECTOR_MAP).length > 0)
@@ -520,8 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="case-card-header">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span class="badge-order">#${c.orden}</span>
-              ${c.orden_final ? `<span style="font-size:11px; color:#a855f7; font-weight:700; background:rgba(168,85,247,0.12); padding:2px 6px; border-radius:4px;"><i class="fas fa-arrow-right"></i> Final: ${c.orden_final}</span>` : ''}
-              <span class="badge-prio ${badgePrioClass}">${c.prioridad}</span>
               ${reprogBadgeHtml}
             </div>
             <div class="case-time" title="Tiempo de registro">
@@ -817,34 +814,58 @@ document.addEventListener('DOMContentLoaded', () => {
       detectedSolicitadoPor = matchReg[1].trim();
     }
 
-    // 4. NODO, ZONA, SECTOR Y SUPERVISOR AUTOMÁTICO (TODAS LAS ZONAS DE MANTENIMIENTO)
-    const matchNodePrefix = raw.match(/^([A-Z]{3})\s*-\s*/m) || raw.match(/\b(M[A-Z]{2}|F[A-Z]{2})\b/);
+    // 4. NODO, ZONA Y SUPERVISOR AUTOMÁTICO (ESTRICTAMENTE ZONAS ENUMERADAS Y FALCÓN)
     const matchMdtExplicit = raw.match(/\b(M[A-Z]{2}|F[A-Z]{2})\d{2,3}(?:\.\d+)?\b/i);
+    const matchNodePrefix = raw.match(/^([A-Z]{3})\s*-\s*/m) || raw.match(/\b(M[A-Z]{2}|F[A-Z]{2})\b/);
 
-    let prefix = '';
     if (matchMdtExplicit) {
       detectedMdt = matchMdtExplicit[0].toUpperCase();
-      prefix = detectedMdt.substring(0, 3);
     } else if (matchNodePrefix) {
-      prefix = matchNodePrefix[1].toUpperCase();
-      detectedMdt = prefix + '001';
+      detectedMdt = matchNodePrefix[1].toUpperCase() + '001';
     }
 
-    if (prefix && NODE_TO_ZONE_MAP[prefix]) {
-      const nodeInfo = NODE_TO_ZONE_MAP[prefix];
-      detectedZona = nodeInfo.zona;
-      detectedSupervisor = nodeInfo.supervisor;
-      if (MDT_SECTOR_MAP[detectedMdt]) {
-        detectedZona = MDT_SECTOR_MAP[detectedMdt];
-      }
+    // RESOLUCIÓN ESTRICTA DE ZONA DE MANTENIMIENTO:
+    // (Devuelve exclusivamente: 'Zona 1-Z', 'Zona 2-Z', 'Zona 3-Z', 'Zona 5-Z', 'Zona 6-Z' o 'Falcón')
+    function determineMaintenanceZone(text, mdt) {
+      // 1. Coincidencia explícita en texto
+      if (/\bZONA\s*1[-_ ]?Z\b|\bZONA\s*1\b|\bZ[-_ ]?1\b/i.test(text)) return 'Zona 1-Z';
+      if (/\bZONA\s*2[-_ ]?Z\b|\bZONA\s*2\b|\bZ[-_ ]?2\b/i.test(text)) return 'Zona 2-Z';
+      if (/\bZONA\s*3[-_ ]?Z\b|\bZONA\s*3\b|\bZ[-_ ]?3\b/i.test(text)) return 'Zona 3-Z';
+      if (/\bZONA\s*5[-_ ]?Z\b|\bZONA\s*5\b|\bZ[-_ ]?5\b/i.test(text)) return 'Zona 5-Z';
+      if (/\bZONA\s*6[-_ ]?Z\b|\bZONA\s*6\b|\bZ[-_ ]?6\b/i.test(text)) return 'Zona 6-Z';
+      if (/\bFALC[OÓ]N\b|\bZONA\s*[12][-_ ]?F\b|\bPUNTO\s*FIJO\b|\bCORO\b/i.test(text)) return 'Falcón';
+
+      // 2. Prefijo del código MDT
+      const p = (mdt || '').substring(0, 3).toUpperCase();
+      if (['MLT', 'MSR', 'MCN', 'MLV', 'MBR'].includes(p)) return 'Zona 3-Z';
+      if (['MBV', 'MPM', 'MMC', 'MSJ'].includes(p)) return 'Zona 1-Z';
+      if (['MCS', 'MCU'].includes(p)) return 'Zona 2-Z';
+      if (['MCB', 'MCO', 'MBQ', 'MMG', 'MPA'].includes(p)) return 'Zona 5-Z';
+      if (['MLC', 'MMR', 'MPG', 'MSC', 'MEM'].includes(p)) return 'Zona 6-Z';
+      if (['MFC', 'MVC', 'MFM', 'MFD', 'FPC', 'FTP', 'FYR', 'FTU', 'FPS', 'FPN', 'FPU', 'FAD'].includes(p)) return 'Falcón';
+
+      // 3. Palabras clave de OLT / Nodos / Sectores
+      if (/LTUN|TUNAS|ROTARIA|OLIVOS|SAN\s*RAFAEL|CONCEPCI[OÓ]N|VILLA|BARRANQUITAS|BARALT|CHAMARRETA/i.test(text)) return 'Zona 3-Z';
+      if (/BELLA\s*VISTA|POMONA|MACHIQUES|SAN\s*JOS[EÉ]/i.test(text)) return 'Zona 1-Z';
+      if (/CALLAO|24\s*DE\s*JULIO|CA[ÑN]ADA/i.test(text)) return 'Zona 2-Z';
+      if (/CABIMAS|OJEDA|BACHAQUERO|MENE\s*GRANDE|PUERTOS/i.test(text)) return 'Zona 5-Z';
+      if (/LAGO\s*CARIBE|MARITE|PARAGUAIPOA|SANTA\s*CRUZ|MOJ[AÁ]N/i.test(text)) return 'Zona 6-Z';
+      if (/DABAJURO|TUCACAS|YARACAL|CUMAREBO|AD[IÍ]CORA|PUEBLO\s*NUEVO/i.test(text)) return 'Falcón';
+
+      return 'Zona 3-Z'; // Default seguro
     }
 
-    // Revisar si viene explícito "Zona: Zona 2-Z"
-    const matchZonaExplicit = raw.match(/Zona[\s:#]+([^\n\r]+)/i);
-    if (matchZonaExplicit) {
-      const zText = matchZonaExplicit[1].trim();
-      if (zText.toUpperCase().includes('ZONA')) detectedZona = zText;
-    }
+    detectedZona = determineMaintenanceZone(raw, detectedMdt);
+
+    const zoneSupervisors = {
+      'Zona 1-Z': 'José Castillo',
+      'Zona 2-Z': 'Angel Contreras',
+      'Zona 3-Z': 'Roberto Carrillo',
+      'Zona 5-Z': 'Jesus Rojas',
+      'Zona 6-Z': 'Marlo Villalobos',
+      'Falcón': 'Jose Millan'
+    };
+    detectedSupervisor = zoneSupervisors[detectedZona] || 'Roberto Carrillo';
 
     // 5. CLIENTE / ABONADO (IGNORAR ESTRICTAMENTE DEPARTAMENTOS INTERNOS)
     const matchDiferidaHeader = raw.match(/(?:Editando\s+Diferida\s+de|Diferida\s+de)\s+([^\n\r]+)/i);
@@ -873,16 +894,22 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (matchTipoODT) {
       detectedMotivo = matchTipoODT[1].trim();
     } else if (matchNodePrefix) {
-      const matchTitleMotivo = raw.match(new RegExp(prefix + '\\s*-\\s*([^,\\n\\r]+)'));
+      const pfx = (detectedMdt || '').substring(0, 3);
+      const matchTitleMotivo = raw.match(new RegExp(pfx + '\\s*-\\s*([^,\\n\\r]+)'));
       if (matchTitleMotivo) detectedMotivo = matchTitleMotivo[1].trim();
     }
 
-    // 7. CUADRILLA ASIGNADA (SIN "NODO SAN")
-    const matchCuad = raw.match(/(?:Cuadrilla(?:\s*ODT)?|Técnico\s+líder|Tecnico\s+lider|Responsable)[\s:#]+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i);
+    // 7. CUADRILLA ASIGNADA (SIN PREFIJOS "asignada", "en sitio", "Nodo", etc.)
+    const matchCuad = raw.match(/(?:Cuadrilla(?:\s*ODT|\s*en\s*sitio|\s*asignada)?|Técnico\s+líder|Tecnico\s+lider|Técnico\s+asignado|Tecnico\s+asignado|Responsable)[\s:#]+([^\n\r]+)/i);
     if (matchCuad) {
-      const cuadVal = matchCuad[1].trim();
-      const invalidCuad = /(?:odt|responsable|equipo|ayudante|nodo|tiempo)/i;
-      if (!invalidCuad.test(cuadVal) && cuadVal.length > 3) {
+      let cuadVal = matchCuad[1].trim();
+      // Remover prefijos capturados erróneamente
+      cuadVal = cuadVal.replace(/^(?:asignada|en\s*sitio|l[ií]der|t[eé]cnico(?:\s*asignado)?|responsable)[\s:#-]*/i, '').trim();
+      // Cortar si topa con siguientes etiquetas de ODT
+      cuadVal = cuadVal.split(/\b(?:tiempo|fecha|ayudante|equipo|solicitado|requerido|odt|nodo|estado|motivo)\b/i)[0].trim();
+      // Limpiar puntuación final
+      cuadVal = cuadVal.replace(/[,;.-]+$/, '').trim();
+      if (cuadVal.length >= 3 && !/^(?:nodo|tiempo|fecha|equipo|ayudante)/i.test(cuadVal)) {
         detectedCuadrilla = cuadVal;
       }
     }
@@ -930,20 +957,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // APLICAR AL FORMULARIO MODAL
     if (detectedOrden) document.getElementById('caseOrden').value = detectedOrden;
-    if (detectedOrdenFinal) document.getElementById('caseOrdenFinal').value = detectedOrdenFinal;
+    if (document.getElementById('caseOrdenFinal')) document.getElementById('caseOrdenFinal').value = '';
     if (detectedCliente) document.getElementById('caseCliente').value = detectedCliente;
     if (detectedCedula) document.getElementById('caseCedula').value = detectedCedula;
     if (detectedTelefono) document.getElementById('caseTelefono').value = detectedTelefono;
-    if (detectedDireccion) document.getElementById('caseDireccion').value = detectedDireccion;
+    if (document.getElementById('caseDireccion')) document.getElementById('caseDireccion').value = detectedDireccion;
     if (detectedMdt) document.getElementById('caseMdt').value = detectedMdt;
     if (detectedCuadrilla) document.getElementById('caseCuadrilla').value = detectedCuadrilla;
-    if (detectedSolicitadoPor) document.getElementById('caseSolicitadoPor').value = detectedSolicitadoPor;
-    if (detectedFechaRegistro) document.getElementById('caseFechaRegistro').value = detectedFechaRegistro;
+    if (document.getElementById('caseSolicitadoPor')) document.getElementById('caseSolicitadoPor').value = detectedSolicitadoPor;
+    if (document.getElementById('caseFechaRegistro')) document.getElementById('caseFechaRegistro').value = detectedFechaRegistro;
     if (detectedFechaReprogramada) document.getElementById('caseFechaReprogramada').value = detectedFechaReprogramada;
     if (detectedHoraReprogramada) document.getElementById('caseHoraReprogramada').value = detectedHoraReprogramada;
 
-    setSelectValue('caseZona', detectedZona || 'Zona 3-Z');
-    setSelectValue('caseSupervisor', detectedSupervisor || 'Roberto Carrillo');
+    setSelectValue('caseZona', detectedZona);
+    if (document.getElementById('caseSupervisor')) document.getElementById('caseSupervisor').value = detectedSupervisor;
     setSelectValue('caseEstado', detectedEstado);
 
     if (detectedMotivo) {
@@ -952,8 +979,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Swal.fire({
       icon: 'success',
-      title: '¡Pegado Mágico 100% Reconocido!',
-      html: `<b>Orden:</b> #${detectedOrden || 'S/N'}<br><b>Cliente:</b> ${detectedCliente}<br><b>C.I.:</b> ${detectedCedula || 'N/A'}<br><b>Zona / Nodo:</b> ${detectedZona} (${prefix || 'MDT'})`,
+      title: '¡Pegado Mágico Reconocido!',
+      html: `<b>Orden:</b> #${detectedOrden || 'S/N'}<br><b>Cliente:</b> ${detectedCliente}<br><b>C.I.:</b> ${detectedCedula || 'N/A'}<br><b>Zona:</b> ${detectedZona} &bull; <b>MDT:</b> ${detectedMdt || 'N/A'}<br><b>Cuadrilla:</b> ${detectedCuadrilla || 'Por asignar'}`,
       timer: 1700,
       showConfirmButton: false
     });
@@ -986,13 +1013,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function setSelectValue(selectId, val) {
     const sel = document.getElementById(selectId);
     if (!sel || !val) return;
-    const vLower = val.toLowerCase();
+    const vNorm = val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     for (let i = 0; i < sel.options.length; i++) {
-      const optVal = sel.options[i].value.toLowerCase();
-      const optText = sel.options[i].text.toLowerCase();
-      if (optVal === vLower || optText.includes(vLower) || vLower.includes(optVal)) {
+      const optVal = sel.options[i].value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const optText = sel.options[i].text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (optVal === vNorm || optText === vNorm || optVal.includes(vNorm) || vNorm.includes(optVal) || optText.includes(vNorm)) {
         sel.selectedIndex = i;
         return;
+      }
+    }
+    const num = vNorm.match(/\b([12356])\b/);
+    if (num) {
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.includes(num[1])) {
+          sel.selectedIndex = i;
+          return;
+        }
       }
     }
   }
