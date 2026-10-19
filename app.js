@@ -1,5 +1,5 @@
 /**
- * SICS MANTENIMIENTO & ZONA 3 — GESTIÓN OPERATIVA DE ESCALAMIENTOS 2.0
+ * SICS MANTENIMIENTO & ZONA 3 — GESTIÓN OPERATIVA Y ESCALAMIENTOS 2.0
  * Airtek Internet — Control y Seguimiento en Vivo
  * Desarrollado para Moisés González (Analista de Zona / Despacho)
  */
@@ -8,72 +8,119 @@ document.addEventListener('DOMContentLoaded', () => {
   const STORAGE_KEY = 'SICS_ESCALAMIENTOS_ZONA3_2026';
   const THEME_KEY = 'SICS_THEME_MODE';
   const CLOUD_URL_KEY = 'sics_cloud_url';
+  const SOUND_KEY = 'SICS_SOUND_ENABLED';
   const DEFAULT_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbx4W5Rf5n4M80cG0MtgOksbU03FAxWtB5UxfDalVmbeykOKfvBhLk8iTD-ylrC9AJNgeA/exec';
 
-  // 1. DICCIONARIO MAESTRO DE MDTs DE TODAS LAS ZONAS (1,690 MDTs)
+  // 1. MAPA MAESTRO DE NODOS DE TODAS LAS ZONAS DE MANTENIMIENTO AIRTEK
+  const NODE_TO_ZONE_MAP = {
+    // Zona 1 (NORTE)
+    "MBV": { nodo: "Bella Vista", sector: "Bella Vista", zona: "Zona 1-Z", supervisor: "José Castillo" },
+    "MPM": { nodo: "Pomona", sector: "Pomona", zona: "Zona 1-Z", supervisor: "José Castillo" },
+    "MMC": { nodo: "Machiques", sector: "Machiques", zona: "Zona 1-Z", supervisor: "José Castillo" },
+    "MSJ": { nodo: "San José las Piedras", sector: "San José las Piedras", zona: "Zona 1-Z", supervisor: "José Castillo" },
+    // Zona 2 (SUR)
+    "MCS": { nodo: "Callao", sector: "Callao", zona: "Zona 2-Z", supervisor: "Angel Contreras" },
+    "MCU": { nodo: "La Cañada", sector: "La Cañada", zona: "Zona 2-Z", supervisor: "Angel Contreras" },
+    // Zona 3 (OESTE)
+    "MSR": { nodo: "San Rafael", sector: "San Rafael", zona: "Zona 3-Z", supervisor: "Roberto Carrillo" },
+    "MLT": { nodo: "Las Tunas", sector: "Rotaria", zona: "Zona 3-Z", supervisor: "Roberto Carrillo" },
+    "MCN": { nodo: "Concepción", sector: "La Concepción", zona: "Zona 3-Z", supervisor: "Roberto Carrillo" },
+    "MLV": { nodo: "La Villa", sector: "La Villa", zona: "Zona 3-Z", supervisor: "Roberto Carrillo" },
+    "MBR": { nodo: "Barranquitas", sector: "Barranquitas", zona: "Zona 3-Z", supervisor: "Roberto Carrillo" },
+    // Zona 5 (COL)
+    "MCB": { nodo: "Cabimas", sector: "Cabimas", zona: "Zona 5-Z", supervisor: "Jesus Rojas" },
+    "MCO": { nodo: "Ciudad Ojeda", sector: "Ciudad Ojeda", zona: "Zona 5-Z", supervisor: "Jesus Rojas" },
+    "MBQ": { nodo: "Bachaquero", sector: "Bachaquero", zona: "Zona 5-Z", supervisor: "Jesus Rojas" },
+    "MMG": { nodo: "Mene Grande", sector: "Mene Grande", zona: "Zona 5-Z", supervisor: "Jesus Rojas" },
+    "MPA": { nodo: "Los Puertos de Altagracia", sector: "Los Puertos", zona: "Zona 5-Z", supervisor: "Jesus Rojas" },
+    // Zona 6 (SUB-NORTE)
+    "MLC": { nodo: "Lago Caribe", sector: "Lago Caribe", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
+    "MMR": { nodo: "Marite", sector: "Marite", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
+    "MPG": { nodo: "Paraguaipoa", sector: "Paraguaipoa", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
+    "MSC": { nodo: "Santa Cruz de Mara", sector: "Santa Cruz de Mara", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
+    "MEM": { nodo: "El Moján", sector: "El Moján", zona: "Zona 6-Z", supervisor: "Marlo Villalobos" },
+    // Falcón 1
+    "MFC": { nodo: "Coro", sector: "Coro", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "MVC": { nodo: "La Vela de Coro", sector: "La Vela", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "MFM": { nodo: "Mene Mauroa", sector: "Mene Mauroa", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "MFD": { nodo: "Dabajuro", sector: "Dabajuro", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "FPC": { nodo: "Puerto Cumarebo", sector: "Puerto Cumarebo", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "FTP": { nodo: "Tocopero", sector: "Tocopero", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "FYR": { nodo: "Yaracal", sector: "Yaracal", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    "FTU": { nodo: "Tucacas", sector: "Tucacas", zona: "Zona 1-F", supervisor: "Jose Millan" },
+    // Falcón 2
+    "FPS": { nodo: "Punto Fijo (SUR)", sector: "Punto Fijo Sur", zona: "Zona 2-F", supervisor: "Leomar León" },
+    "FPN": { nodo: "Punto Fijo (NORTE)", sector: "Punto Fijo Norte", zona: "Zona 2-F", supervisor: "Leomar León" },
+    "FPU": { nodo: "Pueblo Nuevo", sector: "Pueblo Nuevo", zona: "Zona 2-F", supervisor: "Leomar León" },
+    "FAD": { nodo: "Adícora", sector: "Adícora", zona: "Zona 2-F", supervisor: "Leomar León" }
+  };
+
   const MDT_SECTOR_MAP = (window.MDT_SECTOR_MAP && Object.keys(window.MDT_SECTOR_MAP).length > 0)
     ? window.MDT_SECTOR_MAP
     : {
-    "MSR093": "Centro I", "MSR084": "Centro I", "MSR083": "Centro I", "MSR085": "Centro I", "MSR069": "Centro I", "MSR082": "Centro I", "MSR078": "Centro I", "MSR081": "Centro I", "MSR079": "Centro I",
-    "MCN021": "La Concepción", "MCN023": "La Concepción", "MCN020": "La Concepción", "MCN019": "La Concepción", "MCN018": "La Concepción", "MCN012": "La Concepción", "MCN011": "La Concepción", "MCN010": "La Concepción", "MCN008": "La Concepción", "MCN007": "La Concepción", "MCN006": "La Concepción", "MCN005": "La Concepción", "MCN004": "La Concepción", "MCN003": "La Concepción", "MCN002": "La Concepción", "MCN001": "La Concepción",
-    "MSR068": "Centro II", "MSR070": "Centro II", "MSR067": "Centro II", "MSR076": "Centro II", "MSR074": "Centro II", "MSR077": "Centro II", "MSR075": "Centro III", "MSR080": "Centro III", "MSR072": "Centro III", "MSR073": "Centro III", "MSR071": "Centro III", "MSR053": "Centro III", "MSR054": "Barrio Bolívar", "MSR056": "Centro III", "MSR055": "Barrio Bolívar", "MSR052": "Centro IV", "MSR051": "Centro IV", "MSR059": "Centro IV", "MSR057": "Centro IV", "MSR060": "Centro IV", "MSR061": "Centro IV", "MSR062": "Centro V", "MSR064": "Centro V", "MSR063": "Centro V", "MSR058": "Centro V", "MSR065": "Centro V", "MSR066": "Centro V",
-    "MLT010": "Las Tunas 1-5", "MLT083": "Las Tunas 1-5", "MLT014": "Las Tunas 1-5", "MLT012": "Las Tunas 1-5", "MLT013": "Las Tunas 1-5", "MLT015": "Las Tunas 1-5", "MLT075": "Las Tunas 1-5", "MLT074": "Las Tunas 1-5", "MLT005": "Las Tunas 1-5", "MLT003": "Las Tunas 1-5", "MLT082": "Las Tunas 1-5", "MLT016": "Las Tunas 1-5", "MLT108": "Las Tunas 1-5", "MLT009": "Las Tunas 1-5", "MLT030": "Las Tunas 1-5", "MLT028": "Las Tunas 1-5", "MLT029": "Las Tunas 1-5", "MLT084": "Las Tunas 1-5", "MLT031": "Las Tunas 1-5", "MLT027": "Las Tunas 1-5", "MLT025": "Las Tunas 1-5", "MLT026": "Las Tunas 1-5", "MLT011": "Las Tunas 1-5", "MLT008": "Las Tunas 1-5", "MLT032": "Las Tunas 1-5",
+    "MSR093": "Centro I", "MSR084": "Centro I", "MSR083": "Centro I", "MSR085": "Centro I", "MSR069": "Centro I",
+    "MCN021": "La Concepción", "MCN023": "La Concepción", "MCN001": "La Concepción",
     "MLT072": "Rotaria", "MLT054": "Rotaria", "MLT021": "Rotaria", "MLT081": "Rotaria", "MLT020": "Rotaria",
-    "MLT076": "Las Tunas 1-5", "MLT024": "Las Tunas 1-5", "MLT023": "Las Tunas 1-5", "MLT017": "Las Tunas 1-5", "MLT022": "Las Tunas 1-5", "MLT006": "Las Tunas 1-5", "MLT007": "Las Tunas 1-5", "MLT018.1": "Las Tunas 1-5", "MLT019": "Las Tunas 1-5", "MLT040": "Las Tunas 1-5", "MLT002": "Las Tunas 1-5", "MLT001": "Las Tunas 1-5", "MLT039": "Las Tunas 1-5", "MLT041": "Las Tunas 1-5", "MLT004": "Las Tunas 1-5", "MLT071": "Las Tunas 1-5", "MLT058": "Las Tunas 1-5", "MLT055": "Las Tunas 1-5", "MLT056": "Las Tunas 1-5", "MLT059": "Las Tunas 1-5", "MLT057": "Las Tunas 1-5", "MLT053": "Las Tunas 1-5", "MLT018": "Las Tunas 1-5",
-    "MLT042": "Olivos 1-4", "MLT046": "Olivos 1-4", "MLT045": "Olivos 1-4", "MLT043": "Olivos 1-4", "MLT044": "Olivos 1-4", "MLT052": "Olivos 1-4", "MLT051": "Olivos 1-4", "MLT050": "Olivos 1-4", "MLT115": "Olivos 1-4", "MLT063": "Olivos 1-4", "MLT062": "Olivos 1-4", "MLT049": "Olivos 1-4", "MLT088": "Olivos 1-4", "MLT078": "Olivos 1-4", "MLT077": "Olivos 1-4", "MLT047": "Olivos 1-4", "MLT048": "Olivos 1-4", "MLT064": "Olivos 1-4", "MLT085": "Olivos 1-4", "MLT069": "Olivos 1-4", "MLT070": "Olivos 1-4", "MLT068": "Olivos 1-4", "MLT065": "Olivos 1-4", "MLT066": "Olivos 1-4", "MLT067": "Olivos 1-4", "MLT060": "Olivos 1-4", "MLT061": "Olivos 1-4", "MLT110": "Olivos 1-4", "MLT111": "Olivos 1-4", "MLT112": "Olivos 1-4", "MLT114": "Olivos 1-4", "MLT113": "Olivos 1-4", "MLT079.1": "Olivos 1-4", "MLT079": "Olivos 1-4", "MLT080": "Olivos 1-4", "MLT089": "Olivos 1-4",
-    "MLT073": "Villa Baralt", "MSR043": "Villa Baralt", "MSR040": "Villa Baralt", "MSR041": "Villa Baralt", "MSR045": "Villa Baralt", "MSR046": "Villa Baralt", "MSR044": "Villa Baralt", "MLT087": "Villa Baralt", "MSR050": "Villa Baralt", "MLT086": "Villa Baralt", "MLT038": "Villa Baralt", "MLT037": "Villa Baralt", "MLT036": "Villa Baralt", "MLT035": "Villa Baralt", "MLT033": "Villa Baralt", "MLT034": "Villa Baralt",
-    "MSR036": "San Isidro", "MSR035": "San Isidro", "MSR094": "San Isidro", "MSR047": "San Isidro", "MSR048": "San Isidro", "MSR049": "San Isidro", "MSR033": "San Isidro", "MSR034": "San Isidro", "MSR031": "San Isidro", "MSR039": "San Isidro", "MSR037": "San Isidro", "MSR042": "San Isidro", "MSR030": "San Isidro", "MSR038": "San Isidro",
-    "MSR092": "Chamarreta", "MSR089": "Chamarreta", "MSR090": "Chamarreta", "MSR086": "Chamarreta", "MSR087": "Chamarreta", "MSR091": "Chamarreta", "MSR088": "Chamarreta", "MSR020": "Chamarreta", "MSR014": "Chamarreta", "MSR016": "Chamarreta", "MSR019": "Chamarreta", "MSR018": "Chamarreta", "MSR017": "Chamarreta", "MSR013": "Chamarreta", "MSR015": "Chamarreta", "MSR011": "Chamarreta", "MSR010": "Chamarreta", "MSR009": "Chamarreta", "MSR012": "Chamarreta",
-    "MSR021": "Barrio Bolívar", "MSR008": "Barrio Bolívar", "MSR007": "Barrio Bolívar", "MSR001": "Chamarreta", "MSR004": "Barrio Bolívar", "MSR005": "Barrio Bolívar",
-    "MSR006": "San Rafael", "MSR026": "San Rafael", "MSR028": "San Rafael", "MSR027": "San Rafael", "MSR025": "San Rafael", "MSR029": "San Rafael", "MSR024": "San Rafael",
-    "MSR022": "Chamarreta", "MSR002": "Chamarreta", "MSR003": "Chamarreta", "MSR023": "Chamarreta", "MSR032": "Chamarreta", "MSR000": "Chamarreta",
-    "MLV001": "La Villa", "MLV002": "La Villa", "MLV003": "La Villa", "MLV004": "La Villa", "MLV016": "La Villa", "MLV017": "La Villa", "MLV020": "La Villa", "MLV021": "La Villa", "MLV022": "La Villa", "MLV023": "La Villa", "MLV024": "La Villa", "MLV025": "La Villa", "MLV005": "La Villa", "MLV007": "La Villa", "MLV008": "La Villa", "MLV009": "La Villa", "MLV010": "La Villa", "MLV011": "La Villa", "MLV012": "La Villa", "MLV006": "La Villa", "MLV013": "La Villa", "MLV014": "La Villa", "MLV015": "La Villa", "MLV018": "La Villa", "MLV019": "La Villa",
-    "MBR001": "Barranquitas", "MBR002": "Barranquitas", "MBR003": "Barranquitas", "MBR004": "Barranquitas", "MBR005": "Barranquitas"
+    "MLV001": "La Villa", "MLV002": "La Villa", "MLV003": "La Villa",
+    "MBR001": "Barranquitas", "MBR002": "Barranquitas"
   };
 
   // 2. DATOS INICIALES
   const defaultCases = [
     {
-      id: 'case_315484',
-      orden: '315484',
-      ticket: '4225772',
-      supervisor: 'Roberto Carrillo',
-      zona: 'La Villa',
-      mdt: 'MLV003',
-      cliente: 'Xiomara Elena Gonzalez Gonzalez',
-      cedula: '12344292',
-      telefono: '0412-7860689',
-      direccion: 'Los Prados, A Tres Casas De La Casa De Bases De Misiones',
-      cuadrilla: 'Luis Gómez / La Villa Zona 3',
-      solicitado_por: 'Cecilia Jenny Espinoza (Zendesk)',
-      prioridad: 'MEDIA',
-      estado: 'En Ruta / En Sitio',
-      motivo: 'Reubicación de equipo / acometida',
-      avance: 'Cliente desea reubicar equipo en otro punto estratégico // validar red interna.',
-      timestamp: Date.now() - (35 * 60 * 1000)
-    },
-    {
-      id: 'case_498085',
-      orden: '498085',
+      id: 'case_496026',
+      orden: '496026',
+      orden_final: '',
       ticket: '',
       supervisor: 'Roberto Carrillo',
-      zona: 'Barranquitas',
-      mdt: 'MBR001',
-      cliente: 'LIGIA ELENA ATENCIO VARGAS',
-      cedula: 'V-15661446',
-      telefono: '0412-7860596',
-      direccion: 'CALLE PRINCIPAL CASA S/N SECTOR LA PLAYA',
-      cuadrilla: 'José Hernández',
-      solicitado_por: 'Yarelis Irenis Marín Pacheco',
-      prioridad: 'ALTA',
-      estado: 'Escalado',
-      motivo: 'Instalación de servicio por reconexión (cliente recuperado)',
-      avance: 'Pendiente confirmación de despacho para zona foránea.',
-      timestamp: Date.now() - (75 * 60 * 1000)
+      zona: 'Zona 3-Z',
+      mdt: 'MSR006',
+      cliente: 'Abonado C.I. 26310051',
+      cedula: '26310051',
+      telefono: '0412-7860689',
+      direccion: 'Sector San Rafael / Centro',
+      cuadrilla: 'Por asignar',
+      solicitado_por: 'Jeremi Gil',
+      prioridad: 'MEDIA',
+      estado: 'Pendiente',
+      motivo: 'Instalación por reconexión (cliente recuperado)',
+      avance: 'ODT recibida de Presidencia / CTO. Asignar cuadrilla en sitio.',
+      fecha_registro: new Date().toISOString().split('T')[0],
+      fecha_reprogramada: '',
+      hora_reprogramada: '',
+      gestionado_por: 'Sin gestionar',
+      timestamp: Date.now() - (20 * 60 * 1000)
+    },
+    {
+      id: 'case_308816',
+      orden: '308816',
+      orden_final: 'cumplida bajo la orden original',
+      ticket: '',
+      supervisor: 'Angel Contreras',
+      zona: 'Zona 2-Z',
+      mdt: 'MCS010',
+      cliente: 'Yohainer Martinez',
+      cedula: '25334443',
+      telefono: '0414-6543210',
+      direccion: 'El Callao calle 14 casa 22',
+      cuadrilla: 'Jesús Montiel',
+      solicitado_por: 'Moises Gonzalez',
+      prioridad: 'MEDIA',
+      estado: 'Pausa',
+      motivo: 'No Localizado',
+      avance: 'Cliente no atendió llamada de confirmación. Programado para contacto posterior.',
+      fecha_registro: '2026-10-06',
+      fecha_reprogramada: new Date().toISOString().split('T')[0],
+      hora_reprogramada: '14:00',
+      gestionado_por: 'Moises Gonzalez',
+      timestamp: Date.now() - (60 * 60 * 1000)
     }
   ];
 
   let cases = loadCases();
+  let currentTab = 'principal'; // 'principal' | 'cumplidas' | 'canceladas' | 'pausadas'
+  let activeAlarmCaseId = null;
+  let preAlertNotifiedIds = new Set();
 
   function loadCases() {
     try {
@@ -99,8 +146,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const kpiPendientes = document.getElementById('kpiPendientes');
   const kpiCriticos = document.getElementById('kpiCriticos');
   const kpiResueltos = document.getElementById('kpiResueltos');
+  const kpiNextAlarmTime = document.getElementById('kpiNextAlarmTime');
+  const headerNextAlarmIcon = document.getElementById('headerNextAlarmIcon');
   const countFiltrados = document.getElementById('countFiltrados');
+  const tabSectionTitle = document.getElementById('tabSectionTitle');
 
+  // Pestañas SICS
+  const tabBtnPrincipal = document.getElementById('tabBtnPrincipal');
+  const tabBtnCumplidas = document.getElementById('tabBtnCumplidas');
+  const tabBtnCanceladas = document.getElementById('tabBtnCanceladas');
+  const tabBtnPausadas = document.getElementById('tabBtnPausadas');
+  const tabBadgePrincipal = document.getElementById('tabBadgePrincipal');
+  const tabBadgeCumplidas = document.getElementById('tabBadgeCumplidas');
+  const tabBadgeCanceladas = document.getElementById('tabBadgeCanceladas');
+  const tabBadgePausadas = document.getElementById('tabBadgePausadas');
+
+  // Filtros
   const inputBuscar = document.getElementById('inputBuscar');
   const filtroSupervisor = document.getElementById('filtroSupervisor');
   const filtroSolicitante = document.getElementById('filtroSolicitante');
@@ -108,6 +169,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const filtroEstado = document.getElementById('filtroEstado');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
 
+  // Banner preventivo y Modal Alarma
+  const advanceAlarmBanner = document.getElementById('advanceAlarmBanner');
+  const advanceAlarmBannerText = document.getElementById('advanceAlarmBannerText');
+  const btnAttendAdvanceAlarm = document.getElementById('btnAttendAdvanceAlarm');
+  const btnCloseAdvanceBanner = document.getElementById('btnCloseAdvanceBanner');
+  const modalAlarmOverlay = document.getElementById('modalAlarmOverlay');
+  const alarmModalContent = document.getElementById('alarmModalContent');
+  const btnAlarmAttend = document.getElementById('btnAlarmAttend');
+  const btnAlarmSnooze = document.getElementById('btnAlarmSnooze');
+  const btnAlarmMute = document.getElementById('btnAlarmMute');
+  const btnDismissAlarmModal = document.getElementById('btnDismissAlarmModal');
+
+  // Controles de sonido
+  const btnSoundToggle = document.getElementById('btnSoundToggle');
+  const soundIcon = document.getElementById('soundIcon');
+  const btnTestSound = document.getElementById('btnTestSound');
+
+  // Modal Principal SICS
   const modalBackdrop = document.getElementById('modalCaseBackdrop');
   const btnNuevo = document.getElementById('btnNuevoEscalamiento');
   const btnCloseModal = document.getElementById('btnCloseModal');
@@ -129,7 +208,1277 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSaveCloudUrl = document.getElementById('btnSaveCloudUrl');
   const inputCloudUrl = document.getElementById('inputCloudUrl');
 
-  // 4. CONTROL DE TEMA OSCURO / CLARO
+  // 4. MOTOR DE AUDIO (WEB AUDIO API) — ALARMA INSISTENTE SICS
+  let audioCtx = null;
+  let persistentAlarmTimer = null;
+  let isAlarmSounding = false;
+  let soundEnabled = localStorage.getItem(SOUND_KEY) !== 'false';
+
+  function updateSoundIconUI() {
+    if (soundIcon) {
+      soundIcon.className = soundEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+      soundIcon.style.color = soundEnabled ? 'var(--c-info)' : 'var(--dash-text-muted)';
+    }
+    if (btnSoundToggle) {
+      btnSoundToggle.title = soundEnabled ? 'Sonido de Alarma: Activado' : 'Sonido de Alarma: Silenciado';
+    }
+  }
+  updateSoundIconUI();
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // Pre-alarma suave (2 tonos elegantes de cortesía)
+  function playAlertChime() {
+    if (!soundEnabled) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const playTone = (freq, start, dur) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      };
+      playTone(659.25, 0, 0.22); // E5
+      playTone(880.00, 0.2, 0.35); // A5
+    } catch (e) {
+      console.warn('AudioContext chime error:', e);
+    }
+  }
+
+  // Alarma sonora insistente tipo bíper de emergencia (pulso continuo)
+  function startPersistentAlarm() {
+    if (!soundEnabled || isAlarmSounding) return;
+    isAlarmSounding = true;
+
+    const playPulse = () => {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const playBeep = (freq, start, dur) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square'; // Timbre penetrante de alarma industrial
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+          gain.gain.setValueAtTime(0.22, ctx.currentTime + start);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + start);
+          osc.stop(ctx.currentTime + start + dur);
+        };
+        // Doble beep de alta urgencia
+        playBeep(880, 0, 0.12);
+        playBeep(1174, 0.14, 0.16);
+      } catch (e) {
+        console.warn('AudioContext alarm error:', e);
+      }
+    };
+
+    playPulse();
+    if (persistentAlarmTimer) clearInterval(persistentAlarmTimer);
+    persistentAlarmTimer = setInterval(playPulse, 1200);
+  }
+
+  function stopPersistentAlarm() {
+    isAlarmSounding = false;
+    if (persistentAlarmTimer) {
+      clearInterval(persistentAlarmTimer);
+      persistentAlarmTimer = null;
+    }
+  }
+
+  if (btnSoundToggle) {
+    btnSoundToggle.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem(SOUND_KEY, soundEnabled);
+      updateSoundIconUI();
+      if (!soundEnabled) {
+        stopPersistentAlarm();
+      }
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: soundEnabled ? 'info' : 'warning',
+        title: soundEnabled ? 'Sonido de alarma activado' : 'Sonido de alarma silenciado',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    });
+  }
+
+  if (btnTestSound) {
+    btnTestSound.addEventListener('click', () => {
+      getAudioContext();
+      startPersistentAlarm();
+      Swal.fire({
+        title: '🔔 Probando Alarma Insistente',
+        text: 'Sonará de forma repetitiva hasta que la detengas.',
+        icon: 'warning',
+        confirmButtonText: 'Detener Alarma',
+        confirmButtonColor: '#ef4444'
+      }).then(() => {
+        stopPersistentAlarm();
+      });
+    });
+  }
+
+  // Desbloqueo automático del AudioContext en el primer clic
+  document.addEventListener('click', () => getAudioContext(), { once: true });
+
+  // 5. CONTROL DE PESTAÑAS SICS (Bandeja Principal, Cumplidas, Canceladas, Pausadas)
+  const tabButtons = [
+    { btn: tabBtnPrincipal, tab: 'principal', title: 'Bandeja Principal (Casos Activos)' },
+    { btn: tabBtnCumplidas, tab: 'cumplidas', title: 'Casos Cumplidos (Realizados)' },
+    { btn: tabBtnCanceladas, tab: 'canceladas', title: 'Casos Cancelados' },
+    { btn: tabBtnPausadas, tab: 'pausadas', title: 'Casos Pausados / Reprogramados' }
+  ];
+
+  tabButtons.forEach(item => {
+    if (item.btn) {
+      item.btn.addEventListener('click', () => {
+        tabButtons.forEach(t => t.btn && t.btn.classList.remove('active'));
+        item.btn.classList.add('active');
+        currentTab = item.tab;
+        if (tabSectionTitle) tabSectionTitle.textContent = item.title;
+        renderCases();
+      });
+    }
+  });
+
+  // 6. CÁLCULO DE TIEMPO TRANSCURRIDO & VIGILANCIA DE ALARMAS
+  function formatElapsedTime(timestamp) {
+    if (!timestamp) return 'Reciente';
+    const diffMs = Date.now() - Number(timestamp);
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Hace instantes';
+    if (mins < 60) return `Hace ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return `Hace ${hours}h ${remMins}m`;
+  }
+
+  function getScheduledTimestamp(caseObj) {
+    const f = caseObj.fecha_reprogramada || caseObj.fecha_diferido;
+    const h = caseObj.hora_reprogramada || caseObj.hora_diferido || '14:00';
+    if (!f) return null;
+
+    // Normalizar formato de fecha si viene DD/MM/YYYY
+    let yyyy_mm_dd = f;
+    if (f.includes('/')) {
+      const parts = f.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          yyyy_mm_dd = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+
+    const isoStr = `${yyyy_mm_dd}T${h.padStart(5, '0')}:00`;
+    const ts = new Date(isoStr).getTime();
+    return isNaN(ts) ? null : ts;
+  }
+
+  // 7. RENDERIZAR TARJETAS Y ACTUALIZAR CONTADORES SICS
+  function renderCases() {
+    const q = (inputBuscar.value || '').toLowerCase().trim();
+    const supFilter = filtroSupervisor.value;
+    const solFilter = filtroSolicitante.value;
+    const zonaFilter = filtroZona.value;
+    const estadoFilter = filtroEstado.value;
+
+    // Contadores por categoría SICS
+    let countPrincipal = 0;
+    let countCumplidas = 0;
+    let countCanceladas = 0;
+    let countPausadas = 0;
+
+    cases.forEach(c => {
+      const st = (c.estado || 'Pendiente').toLowerCase();
+      const mot = (c.motivo || '').toLowerCase();
+
+      if (st === 'realizado' || st === 'resuelto') {
+        countCumplidas++;
+      } else if (st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado') {
+        countCanceladas++;
+      } else if (st === 'pausa' || st === 'diferido' || mot.includes('reprogram')) {
+        countPausadas++;
+      } else {
+        countPrincipal++;
+      }
+    });
+
+    if (tabBadgePrincipal) tabBadgePrincipal.textContent = countPrincipal;
+    if (tabBadgeCumplidas) tabBadgeCumplidas.textContent = countCumplidas;
+    if (tabBadgeCanceladas) tabBadgeCanceladas.textContent = countCanceladas;
+    if (tabBadgePausadas) tabBadgePausadas.textContent = countPausadas;
+
+    // Filtrar según la pestaña activa
+    const filteredByTab = cases.filter(c => {
+      const st = (c.estado || 'Pendiente').toLowerCase();
+      const mot = (c.motivo || '').toLowerCase();
+
+      if (currentTab === 'cumplidas') {
+        return st === 'realizado' || st === 'resuelto';
+      } else if (currentTab === 'canceladas') {
+        return st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado';
+      } else if (currentTab === 'pausadas') {
+        return st === 'pausa' || st === 'diferido' || mot.includes('reprogram');
+      } else {
+        // 'principal': casos que no están cumplidos ni cancelados ni pausados
+        return st !== 'realizado' && st !== 'resuelto' &&
+               st !== 'cancelado' && st !== 'cancelado/espera' && st !== 'rebotado' &&
+               st !== 'pausa' && st !== 'diferido' && !mot.includes('reprogram');
+      }
+    });
+
+    // Filtros secundarios (búsqueda, supervisor, zona, solicitante)
+    const filtered = filteredByTab.filter(c => {
+      const matchQ = !q || (
+        (c.orden && c.orden.toLowerCase().includes(q)) ||
+        (c.cliente && c.cliente.toLowerCase().includes(q)) ||
+        (c.cedula && c.cedula.toLowerCase().includes(q)) ||
+        (c.mdt && c.mdt.toLowerCase().includes(q)) ||
+        (c.motivo && c.motivo.toLowerCase().includes(q)) ||
+        (c.cuadrilla && c.cuadrilla.toLowerCase().includes(q)) ||
+        (c.solicitado_por && c.solicitado_por.toLowerCase().includes(q)) ||
+        (c.direccion && c.direccion.toLowerCase().includes(q)) ||
+        (c.zona && c.zona.toLowerCase().includes(q))
+      );
+      const matchSup = !supFilter || c.supervisor === supFilter;
+      const matchSol = !solFilter || (c.solicitado_por && c.solicitado_por.includes(solFilter));
+      const matchZona = !zonaFilter || (c.zona && c.zona.includes(zonaFilter));
+      const matchEstado = !estadoFilter || c.estado === estadoFilter;
+      return matchQ && matchSup && matchSol && matchZona && matchEstado;
+    });
+
+    if (countFiltrados) countFiltrados.textContent = filtered.length;
+
+    // KPIs Globales en Header
+    if (kpiPendientes) kpiPendientes.textContent = countPrincipal;
+    if (kpiCriticos) kpiCriticos.textContent = cases.filter(c => c.prioridad === 'CRÍTICA' && c.estado !== 'Realizado' && c.estado !== 'Resuelto').length;
+    if (kpiResueltos) kpiResueltos.textContent = countCumplidas;
+
+    if (filtered.length === 0) {
+      casesContainer.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    casesContainer.innerHTML = filtered.map(c => {
+      const isResuelto = c.estado === 'Realizado' || c.estado === 'Resuelto';
+      const isPausa = c.estado === 'Pausa' || c.estado === 'Diferido';
+      const badgePrioClass = c.prioridad === 'CRÍTICA' ? 'prio-critica' : (c.prioridad === 'ALTA' ? 'prio-alta' : 'prio-media');
+      const timeStr = formatElapsedTime(c.timestamp);
+
+      // Evaluación de hora reprogramada
+      const scheduledMs = getScheduledTimestamp(c);
+      let reprogBadgeHtml = '';
+      if (scheduledMs && !isResuelto) {
+        const diffMins = Math.round((scheduledMs - Date.now()) / 60000);
+        const horaStr = c.hora_reprogramada || c.hora_diferido || '14:00';
+        if (diffMins <= 0) {
+          reprogBadgeHtml = `
+            <span class="badge-reprog-due" title="¡HORA VENCIDA! Caso debía ser atendido a las ${horaStr}">
+              <i class="fas fa-bell"></i> ¡Vencido! (${horaStr})
+            </span>
+          `;
+        } else if (diffMins <= 15) {
+          reprogBadgeHtml = `
+            <span class="badge-reprog-warning" title="Próximo a cumplirse en ${diffMins} minutos">
+              <i class="far fa-clock"></i> En ${diffMins}m (${horaStr})
+            </span>
+          `;
+        } else {
+          reprogBadgeHtml = `
+            <span style="font-size:11px; color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.1); padding:2px 8px; border-radius:6px;">
+              <i class="far fa-calendar-check"></i> Reprog: ${horaStr}
+            </span>
+          `;
+        }
+      }
+
+      return `
+        <div class="case-card ${isResuelto ? 'case-resolved' : ''}">
+          <div class="case-card-header">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span class="badge-order">#${c.orden}</span>
+              ${c.orden_final ? `<span style="font-size:11px; color:#a855f7; font-weight:700; background:rgba(168,85,247,0.12); padding:2px 6px; border-radius:4px;"><i class="fas fa-arrow-right"></i> Final: ${c.orden_final}</span>` : ''}
+              <span class="badge-prio ${badgePrioClass}">${c.prioridad}</span>
+              ${reprogBadgeHtml}
+            </div>
+            <div class="case-time" title="Tiempo de registro">
+              <i class="far fa-clock"></i> ${timeStr}
+            </div>
+          </div>
+
+          <div class="case-zone-row">
+            <i class="fas fa-map-marker-alt" style="color:var(--corp-active);"></i>
+            <strong>${c.mdt || 'MDT N/A'}</strong> &bull; <span>${c.zona || 'Zona 3-Z'}</span>
+          </div>
+
+          <div class="case-client-row">
+            <i class="fas fa-user"></i>
+            <strong>${c.cliente || 'Abonado SICS'}</strong>
+            ${c.cedula ? `<span class="badge-cedula"><i class="fas fa-id-card"></i> ${c.cedula}</span>` : ''}
+            ${c.telefono ? `<a href="tel:${c.telefono}" class="tel-link"><i class="fas fa-phone-alt"></i> ${c.telefono}</a>` : ''}
+          </div>
+
+          ${c.direccion ? `
+            <div class="case-address-row">
+              <i class="fas fa-map-pin"></i>
+              <span>${c.direccion}</span>
+            </div>
+          ` : ''}
+
+          <div style="display:flex; flex-direction:column; gap:4px; font-size:0.83rem; margin-top:8px;">
+            <div><i class="fas fa-hard-hat" style="color:#f59e0b; width:16px;"></i> Cuadrilla: <strong>${c.cuadrilla || 'Por asignar'}</strong></div>
+            <div><i class="fas fa-user-tie" style="color:#0ea5e9; width:16px;"></i> Solicitó: <strong>${c.solicitado_por || 'Jeremi Gil'}</strong></div>
+            <div style="color:var(--dash-text-muted); font-size:0.78rem;">
+              <i class="fas fa-user-shield" style="width:16px;"></i> Escalado a: <strong>${c.supervisor || 'Roberto Carrillo'}</strong>
+            </div>
+          </div>
+
+          ${c.motivo ? `
+            <div class="case-motivo-box" style="margin-top:8px;">
+              <div class="motivo-label">Motivo / Operación:</div>
+              <div class="motivo-text">${c.motivo}</div>
+            </div>
+          ` : ''}
+
+          ${(c.fecha_reprogramada || c.hora_reprogramada) ? `
+            <div style="margin-top:8px; padding:6px 10px; background:rgba(56,189,248,0.08); border-left:3px solid #38bdf8; border-radius:4px; font-size:12px;">
+              <i class="far fa-clock" style="color:#38bdf8;"></i> <strong>Reprogramado para:</strong> ${c.fecha_reprogramada || 'Hoy'} a las <strong>${c.hora_reprogramada || '14:00'}</strong>
+            </div>
+          ` : ''}
+
+          ${c.avance ? `
+            <div class="case-avance-box" title="Observaciones internas" style="margin-top:8px;">
+              <i class="fas fa-sticky-note" style="color:#f59e0b;"></i>
+              <span><strong>Observaciones:</strong> ${c.avance}</span>
+            </div>
+          ` : ''}
+
+          <div class="case-status-row" style="margin-top:10px;">
+            <span class="status-indicator status-${(c.estado || 'pendiente').replace(/[^a-zA-Z]/g, '').toLowerCase()}">
+              ${c.estado || 'Pendiente'}
+            </span>
+
+            <div class="case-card-actions">
+              <button class="btn-icon btn-wa" onclick="window.copiarFichaWhatsApp('${c.id}')" title="Copiar ficha sobria para WhatsApp">
+                <i class="fab fa-whatsapp"></i>
+              </button>
+              <button class="btn-icon btn-edit" onclick="window.editarCaso('${c.id}')" title="Editar caso / actualizar estado">
+                <i class="fas fa-edit"></i>
+              </button>
+              ${!isResuelto ? `
+                <button class="btn-icon btn-check" onclick="window.marcarResuelto('${c.id}')" title="Marcar como Realizado">
+                  <i class="fas fa-check"></i>
+                </button>
+              ` : ''}
+              <button class="btn-icon btn-del" onclick="window.eliminarCaso('${c.id}')" title="Eliminar de la lista">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 8. BUCLE DE VIGILANCIA DE ALARMAS REPROGRAMADAS (CADA 5 SEGUNDOS)
+  function checkReprogrammedAlarms() {
+    const now = Date.now();
+    let nextScheduledDiff = Infinity;
+    let nextScheduledCase = null;
+    let triggeredAlarmCase = null;
+
+    cases.forEach(c => {
+      const isDone = c.estado === 'Realizado' || c.estado === 'Resuelto' || c.estado === 'Cancelado';
+      if (isDone) return;
+
+      const scheduledMs = getScheduledTimestamp(c);
+      if (!scheduledMs) return;
+
+      const diffMs = scheduledMs - now;
+      const diffMins = Math.round(diffMs / 60000);
+
+      // Encontrar el caso más próximo en el futuro
+      if (diffMs > 0 && diffMs < nextScheduledDiff) {
+        nextScheduledDiff = diffMs;
+        nextScheduledCase = c;
+      }
+
+      // 1. AVISO PREVENTIVO (15 MINUTOS ANTES)
+      if (diffMins <= 15 && diffMins > 0) {
+        if (!preAlertNotifiedIds.has(c.id)) {
+          preAlertNotifiedIds.add(c.id);
+          const horaStr = c.hora_reprogramada || c.hora_diferido || '14:00';
+
+          if (advanceAlarmBanner && advanceAlarmBannerText) {
+            advanceAlarmBannerText.innerHTML = `
+              <strong>⏰ AVISO PREVENTIVO:</strong> El caso <strong>#${c.orden}</strong> (${c.cliente}) está reprogramado para las <strong>${horaStr}</strong> (faltan ${diffMins} min).
+            `;
+            advanceAlarmBanner.style.display = 'flex';
+            if (btnAttendAdvanceAlarm) {
+              btnAttendAdvanceAlarm.onclick = () => openModal(c);
+            }
+          }
+
+          playAlertChime();
+        }
+      }
+
+      // 2. ALARMA CRÍTICA AL ALCANZAR LA HORA O ESTAR VENCIDO
+      if (diffMins <= 0) {
+        if (!triggeredAlarmCase) {
+          triggeredAlarmCase = c;
+        }
+      }
+    });
+
+    // Actualizar indicador en header
+    if (kpiNextAlarmTime) {
+      if (nextScheduledCase) {
+        const minsLeft = Math.round(nextScheduledDiff / 60000);
+        const hora = nextScheduledCase.hora_reprogramada || nextScheduledCase.hora_diferido || '14:00';
+        kpiNextAlarmTime.textContent = `${hora} (#${nextScheduledCase.orden} en ${minsLeft}m)`;
+        if (headerNextAlarmIcon) headerNextAlarmIcon.style.color = '#38bdf8';
+      } else {
+        kpiNextAlarmTime.textContent = 'Sin casos';
+        if (headerNextAlarmIcon) headerNextAlarmIcon.style.color = 'var(--dash-text-muted)';
+      }
+    }
+
+    // DISPARAR ALARMA VISUAL & SONORA INSISTENTE
+    if (triggeredAlarmCase) {
+      activeAlarmCaseId = triggeredAlarmCase.id;
+      const horaStr = triggeredAlarmCase.hora_reprogramada || triggeredAlarmCase.hora_diferido || '14:00';
+
+      if (alarmModalContent) {
+        alarmModalContent.innerHTML = `
+          <div class="alarm-case-card">
+            <div class="alarm-case-header">
+              <span style="font-size:1.1rem; font-weight:900; color:#38bdf8;">Orden #${triggeredAlarmCase.orden}</span>
+              <span class="alarm-overdue-tag">¡HORA PROGRAMADA: ${horaStr}!</span>
+            </div>
+            <div style="font-size:1.05rem; font-weight:800; color:#fff; margin-bottom:6px;">
+              ${triggeredAlarmCase.cliente}
+            </div>
+            <div style="font-size:0.88rem; color:#94a3b8; margin-bottom:8px;">
+              <strong>Zona:</strong> ${triggeredAlarmCase.zona || 'Zona 3-Z'} &bull; <strong>MDT:</strong> ${triggeredAlarmCase.mdt || 'N/A'} &bull; <strong>Supervisor:</strong> ${triggeredAlarmCase.supervisor}
+            </div>
+            <div style="font-size:0.85rem; color:#f59e0b; background:rgba(245,158,11,0.1); padding:8px 12px; border-radius:6px;">
+              <i class="fas fa-exclamation-triangle"></i> <strong>Motivo de Operación:</strong> ${triggeredAlarmCase.motivo || 'Visita reprogramada'}
+            </div>
+          </div>
+        `;
+      }
+
+      if (modalAlarmOverlay) {
+        modalAlarmOverlay.style.display = 'flex';
+      }
+
+      startPersistentAlarm();
+    }
+  }
+
+  // Cerrar banner preventivo
+  if (btnCloseAdvanceBanner && advanceAlarmBanner) {
+    btnCloseAdvanceBanner.addEventListener('click', () => {
+      advanceAlarmBanner.style.display = 'none';
+    });
+  }
+
+  // ACCIONES DEL MODAL DE ALARMA
+  if (btnAlarmAttend) {
+    btnAlarmAttend.addEventListener('click', () => {
+      stopPersistentAlarm();
+      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      if (activeAlarmCaseId) {
+        const found = cases.find(c => c.id === activeAlarmCaseId);
+        if (found) {
+          found.estado = 'En ejecucion';
+          saveCases();
+          renderCases();
+          openModal(found);
+        }
+      }
+    });
+  }
+
+  if (btnAlarmSnooze) {
+    btnAlarmSnooze.addEventListener('click', () => {
+      stopPersistentAlarm();
+      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      if (activeAlarmCaseId) {
+        const found = cases.find(c => c.id === activeAlarmCaseId);
+        if (found) {
+          // Posponer 15 minutos en el futuro
+          const newTarget = new Date(Date.now() + (15 * 60 * 1000));
+          const hh = String(newTarget.getHours()).padStart(2, '0');
+          const mm = String(newTarget.getMinutes()).padStart(2, '0');
+          found.hora_reprogramada = `${hh}:${mm}`;
+          found.fecha_reprogramada = newTarget.toISOString().split('T')[0];
+          saveCases();
+          renderCases();
+          pushCaseToCloud(found);
+
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: `Caso #${found.orden} pospuesto 15 min (para las ${hh}:${mm})`,
+            showConfirmButton: false,
+            timer: 2500
+          });
+        }
+      }
+    });
+  }
+
+  if (btnAlarmMute) {
+    btnAlarmMute.addEventListener('click', () => {
+      stopPersistentAlarm();
+      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+    });
+  }
+
+  if (btnDismissAlarmModal) {
+    btnDismissAlarmModal.addEventListener('click', () => {
+      stopPersistentAlarm();
+      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+    });
+  }
+
+  // 9. PEGADO MÁGICO 100% CERTERO — COMPATIBLE CON TODAS LAS ZONAS Y ODOO / SICS
+  function parsePastedOrder(text) {
+    if (!text || !text.trim()) return;
+
+    const raw = text.trim();
+
+    let detectedOrden = '';
+    let detectedOrdenFinal = '';
+    let detectedCliente = '';
+    let detectedCedula = '';
+    let detectedTelefono = '';
+    let detectedDireccion = '';
+    let detectedMdt = '';
+    let detectedZona = '';
+    let detectedSupervisor = '';
+    let detectedCuadrilla = '';
+    let detectedSolicitadoPor = '';
+    let detectedPrioridad = 'MEDIA';
+    let detectedMotivo = '';
+    let detectedFechaRegistro = new Date().toISOString().split('T')[0];
+    let detectedFechaReprogramada = '';
+    let detectedHoraReprogramada = '14:00';
+    let detectedEstado = 'Pendiente';
+    let detectedGestionadoPor = 'Sin gestionar';
+    let detectedComentarios = '';
+
+    // 1. ORDEN PRINCIPAL
+    const matchOdooOrden = raw.match(/F-OPE-AIRTEK-\d+\/(\d+)/i) ||
+                           raw.match(/(?:Orden\s*Origen|Orden\s*N[°o]?|OT|N[°o]\s*de\s*Orden)[\s:#]*(\d{5,8})/i) ||
+                           raw.match(/\b(\d{6})\b/);
+    if (matchOdooOrden) detectedOrden = matchOdooOrden[1];
+
+    // Orden Final
+    const matchOrdenFinal = raw.match(/Orden\s*Final(?:[^\n\r:]*)[\s:#]+([^\n\r]+)/i);
+    if (matchOrdenFinal) detectedOrdenFinal = matchOrdenFinal[1].trim();
+
+    // 2. CÉDULA CLIENTE
+    const matchCedula = raw.match(/(?:C\.?I\.?|Cédula|Cedula|Identificación|Identificacion)(?:\s*Cliente)?[\s:#]*([VvEe]?[-]?\d{6,9})/i);
+    if (matchCedula) detectedCedula = matchCedula[1].replace(/[^0-9]/g, '');
+
+    // 3. SOLICITADO POR / REQUERIDO POR (NUNCA ASIGNAR A CLIENTE)
+    const matchReq = raw.match(/(?:Requerido\s+por|Solicitado\s+por|Usuario\s+Zendesk)[\s:#]+([^\n\r]+)/i);
+    const matchReg = raw.match(/Registrado\s+por[\s:#]+([^\n\r]+)/i);
+    if (matchReq) {
+      detectedSolicitadoPor = matchReq[1].trim();
+    } else if (matchReg) {
+      detectedSolicitadoPor = matchReg[1].trim();
+    }
+
+    // 4. NODO, ZONA, SECTOR Y SUPERVISOR AUTOMÁTICO (TODAS LAS ZONAS DE MANTENIMIENTO)
+    const matchNodePrefix = raw.match(/^([A-Z]{3})\s*-\s*/m) || raw.match(/\b(M[A-Z]{2}|F[A-Z]{2})\b/);
+    const matchMdtExplicit = raw.match(/\b(M[A-Z]{2}|F[A-Z]{2})\d{2,3}(?:\.\d+)?\b/i);
+
+    let prefix = '';
+    if (matchMdtExplicit) {
+      detectedMdt = matchMdtExplicit[0].toUpperCase();
+      prefix = detectedMdt.substring(0, 3);
+    } else if (matchNodePrefix) {
+      prefix = matchNodePrefix[1].toUpperCase();
+      detectedMdt = prefix + '001';
+    }
+
+    if (prefix && NODE_TO_ZONE_MAP[prefix]) {
+      const nodeInfo = NODE_TO_ZONE_MAP[prefix];
+      detectedZona = nodeInfo.zona;
+      detectedSupervisor = nodeInfo.supervisor;
+      if (MDT_SECTOR_MAP[detectedMdt]) {
+        detectedZona = MDT_SECTOR_MAP[detectedMdt];
+      }
+    }
+
+    // Revisar si viene explícito "Zona: Zona 2-Z"
+    const matchZonaExplicit = raw.match(/Zona[\s:#]+([^\n\r]+)/i);
+    if (matchZonaExplicit) {
+      const zText = matchZonaExplicit[1].trim();
+      if (zText.toUpperCase().includes('ZONA')) detectedZona = zText;
+    }
+
+    // 5. CLIENTE / ABONADO (IGNORAR ESTRICTAMENTE DEPARTAMENTOS INTERNOS)
+    const matchDiferidaHeader = raw.match(/(?:Editando\s+Diferida\s+de|Diferida\s+de)\s+([^\n\r]+)/i);
+    if (matchDiferidaHeader) {
+      detectedCliente = matchDiferidaHeader[1].trim();
+    } else {
+      const matchCliCandidate = raw.match(/(?:Nombre\s+Cliente|Nombre\s+y\s+apellido|Abonado|^Cliente)[\s:#]+([^\n\r]+)/im);
+      if (matchCliCandidate) {
+        const cand = matchCliCandidate[1].trim();
+        const invalidPattern = /(?:gerencia|direcci[oó]n|presidencia|atenci[oó]n|no\s+presencial|requiere|ausente|no\s+localizado)/i;
+        if (!invalidPattern.test(cand)) {
+          detectedCliente = cand;
+        }
+      }
+    }
+
+    if (!detectedCliente) {
+      detectedCliente = detectedCedula ? `Abonado C.I. ${detectedCedula}` : 'Abonado SICS';
+    }
+
+    // 6. MOTIVO / OPERACIÓN
+    const matchTipoODT = raw.match(/Tipo\s+de\s+Orden\s+de\s+Trabajo[\s:#]*([^\n\r]+)/i);
+    const matchMotivoExplicit = raw.match(/Motivo[\s:#]+([^\n\r]+)/i);
+    if (matchMotivoExplicit) {
+      detectedMotivo = matchMotivoExplicit[1].trim();
+    } else if (matchTipoODT) {
+      detectedMotivo = matchTipoODT[1].trim();
+    } else if (matchNodePrefix) {
+      const matchTitleMotivo = raw.match(new RegExp(prefix + '\\s*-\\s*([^,\\n\\r]+)'));
+      if (matchTitleMotivo) detectedMotivo = matchTitleMotivo[1].trim();
+    }
+
+    // 7. CUADRILLA ASIGNADA (SIN "NODO SAN")
+    const matchCuad = raw.match(/(?:Cuadrilla(?:\s*ODT)?|Técnico\s+líder|Tecnico\s+lider|Responsable)[\s:#]+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i);
+    if (matchCuad) {
+      const cuadVal = matchCuad[1].trim();
+      const invalidCuad = /(?:odt|responsable|equipo|ayudante|nodo|tiempo)/i;
+      if (!invalidCuad.test(cuadVal) && cuadVal.length > 3) {
+        detectedCuadrilla = cuadVal;
+      }
+    }
+
+    // 8. TELÉFONO DE CONTACTO (NUNCA FECHA)
+    const matchPhone = raw.match(/(?:Teléfono|Telefono|Telf|Celular)[\s:#]*([0-9\s-]{10,15})/i) || raw.match(/\b(04\d{2}[-\s]?\d{7})\b/);
+    if (matchPhone) {
+      detectedTelefono = normalizePhone(matchPhone[1] || matchPhone[0]);
+    }
+
+    // 9. DIRECCIÓN
+    const matchDir = raw.match(/(?:Dirección\s+servicio|Dirección|Direccion)[\s:#]+([^\n\r]+)/i);
+    if (matchDir) {
+      const dirVal = matchDir[1].trim();
+      if (!dirVal.toLowerCase().includes('instalación de servicio')) {
+        detectedDireccion = dirVal;
+      }
+    }
+
+    // 10. FECHAS Y REPROGRAMACIONES
+    const matchReqDate = raw.match(/Fecha\s+de\s+Requerimiento[\s:#]*([0-9/.-]+)/i);
+    if (matchReqDate) {
+      detectedFechaRegistro = normalizeDateToIso(matchReqDate[1]);
+    }
+
+    const matchReprog = raw.match(/Fecha\s+Reprogramada(?:[^\n\r:]*)[\s:#]+([^\n\r]+)/i);
+    if (matchReprog) {
+      const repStr = matchReprog[1].trim();
+      const parts = repStr.split(/\s+/);
+      if (parts[0]) detectedFechaReprogramada = normalizeDateToIso(parts[0]);
+      if (parts[1]) detectedHoraReprogramada = parts[1].substring(0, 5);
+      detectedEstado = 'Pausa';
+    }
+
+    // 11. ESTATUS
+    const matchEst = raw.match(/(?:Estatus|Estado)[\s:#]+([^\n\r]+)/i);
+    if (matchEst) {
+      const estStr = matchEst[1].trim();
+      if (estStr.toLowerCase().includes('realizado')) detectedEstado = 'Realizado';
+      else if (estStr.toLowerCase().includes('pausa')) detectedEstado = 'Pausa';
+      else if (estStr.toLowerCase().includes('cancelado')) detectedEstado = 'Cancelado';
+      else if (estStr.toLowerCase().includes('ejecucion')) detectedEstado = 'En ejecucion';
+      else detectedEstado = 'Pendiente';
+    }
+
+    // APLICAR AL FORMULARIO MODAL
+    if (detectedOrden) document.getElementById('caseOrden').value = detectedOrden;
+    if (detectedOrdenFinal) document.getElementById('caseOrdenFinal').value = detectedOrdenFinal;
+    if (detectedCliente) document.getElementById('caseCliente').value = detectedCliente;
+    if (detectedCedula) document.getElementById('caseCedula').value = detectedCedula;
+    if (detectedTelefono) document.getElementById('caseTelefono').value = detectedTelefono;
+    if (detectedDireccion) document.getElementById('caseDireccion').value = detectedDireccion;
+    if (detectedMdt) document.getElementById('caseMdt').value = detectedMdt;
+    if (detectedCuadrilla) document.getElementById('caseCuadrilla').value = detectedCuadrilla;
+    if (detectedSolicitadoPor) document.getElementById('caseSolicitadoPor').value = detectedSolicitadoPor;
+    if (detectedFechaRegistro) document.getElementById('caseFechaRegistro').value = detectedFechaRegistro;
+    if (detectedFechaReprogramada) document.getElementById('caseFechaReprogramada').value = detectedFechaReprogramada;
+    if (detectedHoraReprogramada) document.getElementById('caseHoraReprogramada').value = detectedHoraReprogramada;
+
+    setSelectValue('caseZona', detectedZona || 'Zona 3-Z');
+    setSelectValue('caseSupervisor', detectedSupervisor || 'Roberto Carrillo');
+    setSelectValue('caseEstado', detectedEstado);
+
+    if (detectedMotivo) {
+      mapMotivoToSelect(detectedMotivo);
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: '¡Pegado Mágico 100% Reconocido!',
+      html: `<b>Orden:</b> #${detectedOrden || 'S/N'}<br><b>Cliente:</b> ${detectedCliente}<br><b>C.I.:</b> ${detectedCedula || 'N/A'}<br><b>Zona / Nodo:</b> ${detectedZona} (${prefix || 'MDT'})`,
+      timer: 1700,
+      showConfirmButton: false
+    });
+  }
+
+  function normalizePhone(str) {
+    if (!str) return '';
+    const clean = str.replace(/[^0-9]/g, '');
+    if (clean.length === 10 && clean.startsWith('4')) {
+      return `0${clean.slice(0, 3)}-${clean.slice(3)}`;
+    }
+    if (clean.length === 11 && clean.startsWith('04')) {
+      return `${clean.slice(0, 4)}-${clean.slice(4)}`;
+    }
+    return str;
+  }
+
+  function normalizeDateToIso(str) {
+    if (!str) return new Date().toISOString().split('T')[0];
+    const s = str.trim();
+    if (s.includes('/')) {
+      const p = s.split('/');
+      if (p.length === 3) {
+        if (p[2].length === 4) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+      }
+    }
+    return s;
+  }
+
+  function setSelectValue(selectId, val) {
+    const sel = document.getElementById(selectId);
+    if (!sel || !val) return;
+    const vLower = val.toLowerCase();
+    for (let i = 0; i < sel.options.length; i++) {
+      const optVal = sel.options[i].value.toLowerCase();
+      const optText = sel.options[i].text.toLowerCase();
+      if (optVal === vLower || optText.includes(vLower) || vLower.includes(optVal)) {
+        sel.selectedIndex = i;
+        return;
+      }
+    }
+  }
+
+  function mapMotivoToSelect(motivoText) {
+    const motivoSelect = document.getElementById('caseMotivoSelect');
+    const motivoDetalle = document.getElementById('caseMotivoDetalle');
+    if (!motivoSelect || !motivoDetalle) return;
+
+    const lower = motivoText.toLowerCase();
+    let matchedVal = '';
+
+    for (let i = 0; i < motivoSelect.options.length; i++) {
+      const val = motivoSelect.options[i].value;
+      if (val && lower.includes(val.toLowerCase())) {
+        matchedVal = val;
+        break;
+      }
+    }
+
+    if (!matchedVal) {
+      if (lower.includes('reconexi')) matchedVal = 'Instalación por reconexión (cliente recuperado)';
+      else if (lower.includes('reubicaci')) matchedVal = 'Reubicación de equipo / acometida';
+      else if (lower.includes('reprogram')) matchedVal = 'Visita reprogramada';
+      else if (lower.includes('no localiz')) matchedVal = 'No Localizado';
+      else if (lower.includes('los') || lower.includes('sin servicio')) matchedVal = 'Sin servicio / LOS Rojo';
+      else if (lower.includes('obra civil')) matchedVal = 'Requiere obra civil cliente';
+    }
+
+    if (matchedVal) {
+      motivoSelect.value = matchedVal;
+      motivoDetalle.style.display = 'none';
+    } else {
+      motivoSelect.value = 'Otro';
+      motivoDetalle.style.display = 'block';
+      motivoDetalle.value = motivoText;
+    }
+  }
+
+  // 10. HANDLERS GLOBALES DE FORMULARIO
+  window.handleEstadoChange = function(val) {
+    // Si se pasa a Pausa o Diferido, sugerir fecha y hora si están vacías
+    if (val === 'Pausa') {
+      const fechaReprog = document.getElementById('caseFechaReprogramada');
+      if (fechaReprog && !fechaReprog.value) {
+        fechaReprog.value = new Date().toISOString().split('T')[0];
+      }
+    }
+  };
+
+  window.handleMotivoChange = function(val) {
+    const detalleInput = document.getElementById('caseMotivoDetalle');
+    if (detalleInput) {
+      detalleInput.style.display = (val === 'Otro') ? 'block' : 'none';
+      if (val !== 'Otro') detalleInput.value = '';
+    }
+  };
+
+  // 11. MODAL NUEVO / EDITAR
+  function openModal(caseData = null) {
+    caseForm.reset();
+    document.getElementById('rawOrderText').value = '';
+    const titleSpan = document.getElementById('modalTitleText');
+
+    if (caseData) {
+      if (titleSpan) titleSpan.textContent = `Editando Diferida de ${caseData.cliente || caseData.orden}`;
+      document.getElementById('editCaseId').value = caseData.id;
+      document.getElementById('caseOrden').value = caseData.orden || '';
+      document.getElementById('caseOrdenFinal').value = caseData.orden_final || '';
+      document.getElementById('caseTicket').value = caseData.ticket || '';
+      document.getElementById('caseFechaRegistro').value = caseData.fecha_registro || new Date().toISOString().split('T')[0];
+      document.getElementById('caseRegistradoPor').value = caseData.registrado_por || 'Moises Gonzalez';
+      document.getElementById('caseCedula').value = caseData.cedula || '';
+      document.getElementById('caseCliente').value = caseData.cliente || '';
+      document.getElementById('caseFechaReprogramada').value = caseData.fecha_reprogramada || caseData.fecha_diferido || '';
+      document.getElementById('caseHoraReprogramada').value = caseData.hora_reprogramada || caseData.hora_diferido || '14:00';
+      document.getElementById('caseGestionadoPor').value = caseData.gestionado_por || 'Sin gestionar';
+      document.getElementById('caseMdt').value = caseData.mdt || '';
+      document.getElementById('caseCuadrilla').value = caseData.cuadrilla || '';
+      document.getElementById('caseSolicitadoPor').value = caseData.solicitado_por || 'Jeremi Gil';
+      document.getElementById('caseTelefono').value = caseData.telefono || '';
+      document.getElementById('caseDireccion').value = caseData.direccion || '';
+      document.getElementById('casePrioridad').value = caseData.prioridad || 'MEDIA';
+      document.getElementById('caseEstado').value = caseData.estado || 'Pendiente';
+      document.getElementById('caseAvance').value = caseData.avance || '';
+
+      setSelectValue('caseZona', caseData.zona || 'Zona 3-Z');
+      setSelectValue('caseSupervisor', caseData.supervisor || 'Roberto Carrillo');
+      mapMotivoToSelect(caseData.motivo || 'Instalación por reconexión (cliente recuperado)');
+    } else {
+      if (titleSpan) titleSpan.textContent = 'Registrar Caso SICS';
+      document.getElementById('editCaseId').value = '';
+      document.getElementById('caseFechaRegistro').value = new Date().toISOString().split('T')[0];
+      document.getElementById('caseRegistradoPor').value = 'Moises Gonzalez';
+      document.getElementById('caseOrden').value = '';
+      document.getElementById('caseOrdenFinal').value = '';
+      document.getElementById('caseEstado').value = 'Pendiente';
+      document.getElementById('casePrioridad').value = 'MEDIA';
+      document.getElementById('caseZona').value = 'Zona 3-Z';
+      document.getElementById('caseSupervisor').value = 'Roberto Carrillo';
+      document.getElementById('caseSolicitadoPor').value = 'Jeremi Gil';
+      document.getElementById('caseGestionadoPor').value = 'Sin gestionar';
+      document.getElementById('caseHoraReprogramada').value = '14:00';
+      document.getElementById('caseMotivoSelect').value = 'Instalación por reconexión (cliente recuperado)';
+    }
+
+    modalBackdrop.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modalBackdrop.style.display = 'none';
+  }
+
+  caseForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const editId = document.getElementById('editCaseId').value;
+    const orden = document.getElementById('caseOrden').value.trim();
+    const orden_final = document.getElementById('caseOrdenFinal').value.trim();
+    const ticket = document.getElementById('caseTicket').value.trim();
+    const fecha_registro = document.getElementById('caseFechaRegistro').value;
+    const registrado_por = document.getElementById('caseRegistradoPor').value.trim();
+    const cedula = document.getElementById('caseCedula').value.trim();
+    const cliente = document.getElementById('caseCliente').value.trim();
+    const zona = document.getElementById('caseZona').value;
+    const supervisor = document.getElementById('caseSupervisor').value;
+    const mdt = document.getElementById('caseMdt').value.trim();
+    const cuadrilla = document.getElementById('caseCuadrilla').value.trim();
+    const solicitado_por = document.getElementById('caseSolicitadoPor').value.trim();
+    const telefono = document.getElementById('caseTelefono').value.trim();
+    const direccion = document.getElementById('caseDireccion').value.trim();
+    const prioridad = document.getElementById('casePrioridad').value;
+    const estado = document.getElementById('caseEstado').value;
+    const fecha_reprogramada = document.getElementById('caseFechaReprogramada').value;
+    const hora_reprogramada = document.getElementById('caseHoraReprogramada').value;
+    const gestionado_por = document.getElementById('caseGestionadoPor').value.trim();
+
+    const motivoSelectVal = document.getElementById('caseMotivoSelect').value;
+    const motivoDetalleVal = document.getElementById('caseMotivoDetalle').value.trim();
+    const motivo = (motivoSelectVal === 'Otro' && motivoDetalleVal) ? motivoDetalleVal : motivoSelectVal;
+    const avance = document.getElementById('caseAvance').value.trim();
+
+    if (!orden || !cliente) {
+      Swal.fire('Atención', 'Por favor ingresa al menos N° de Orden y Nombre del Cliente.', 'warning');
+      return;
+    }
+
+    let savedCase = null;
+
+    if (editId) {
+      const idx = cases.findIndex(c => c.id === editId);
+      if (idx !== -1) {
+        cases[idx] = {
+          ...cases[idx],
+          orden, orden_final, ticket, fecha_registro, registrado_por, cedula, cliente,
+          zona, supervisor, mdt, cuadrilla, solicitado_por, telefono, direccion,
+          prioridad, estado, motivo, fecha_reprogramada, hora_reprogramada, gestionado_por,
+          // Compatibilidad con Google Sheets
+          fecha_diferido: fecha_reprogramada,
+          hora_diferido: hora_reprogramada,
+          motivo_diferido: motivo,
+          avance
+        };
+        savedCase = cases[idx];
+      }
+    } else {
+      const newCase = {
+        id: 'case_' + (orden || Date.now()),
+        orden, orden_final, ticket, fecha_registro, registrado_por, cedula, cliente,
+        zona, supervisor, mdt, cuadrilla, solicitado_por, telefono, direccion,
+        prioridad, estado, motivo, fecha_reprogramada, hora_reprogramada, gestionado_por,
+        fecha_diferido: fecha_reprogramada,
+        hora_diferido: hora_reprogramada,
+        motivo_diferido: motivo,
+        avance,
+        timestamp: Date.now()
+      };
+      cases.unshift(newCase);
+      savedCase = newCase;
+    }
+
+    saveCases();
+    renderCases();
+    closeModal();
+
+    if (savedCase) {
+      pushCaseToCloud(savedCase);
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: editId ? 'Caso SICS Actualizado' : 'Caso SICS Registrado',
+      timer: 1400,
+      showConfirmButton: false
+    });
+  });
+
+  // 12. ACCIONES RÁPIDAS (WhatsApp, Marcar Realizado, Editar, Eliminar)
+  window.editarCaso = function(id) {
+    const c = cases.find(item => item.id === id);
+    if (c) openModal(c);
+  };
+
+  window.marcarResuelto = function(id) {
+    const c = cases.find(item => item.id === id);
+    if (c) {
+      c.estado = 'Realizado';
+      saveCases();
+      renderCases();
+      updateStatusInCloud(c.id, 'Realizado');
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Caso Cumplido!',
+        text: `Orden #${c.orden} marcada como Realizada.`,
+        timer: 1300,
+        showConfirmButton: false
+      });
+    }
+  };
+
+  window.copiarFichaWhatsApp = function(id) {
+    const c = cases.find(item => item.id === id);
+    if (!c) return;
+
+    let text = `*ODT SICS AIRTEK — #${c.orden}*\n`;
+    text += `*Cliente:* ${c.cliente}\n`;
+    if (c.cedula) text += `*C.I.:* ${c.cedula}\n`;
+    if (c.telefono) text += `*Teléfono:* ${c.telefono}\n`;
+    text += `*Zona / MDT:* ${c.zona || 'Zona 3-Z'} | ${c.mdt || 'N/A'}\n`;
+    if (c.cuadrilla) text += `*Cuadrilla:* ${c.cuadrilla}\n`;
+    if (c.motivo) text += `*Motivo:* ${c.motivo}\n`;
+    if (c.direccion) text += `*Dirección:* ${c.direccion}\n`;
+    if (c.hora_reprogramada) text += `*Reprogramada para:* ${c.hora_reprogramada}\n`;
+    text += `*Estatus:* ${c.estado || 'Pendiente'}\n`;
+    if (c.avance) text += `*Nota:* ${c.avance}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      Swal.fire({
+        icon: 'success',
+        title: 'Ficha copiada',
+        text: 'Lista para pegar en el grupo de WhatsApp.',
+        timer: 1200,
+        showConfirmButton: false
+      });
+    });
+  };
+
+  window.eliminarCaso = function(id) {
+    Swal.fire({
+      title: '¿Eliminar caso?',
+      text: 'Se removerá de tu lista de seguimiento activo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(res => {
+      if (res.isConfirmed) {
+        cases = cases.filter(item => item.id !== id);
+        saveCases();
+        renderCases();
+        deleteCaseInCloud(id);
+      }
+    });
+  };
+
+  // 13. SINCRONIZACIÓN GOOGLE SHEETS
+  function getCloudUrl() {
+    return localStorage.getItem(CLOUD_URL_KEY) || DEFAULT_CLOUD_URL;
+  }
+
+  function setCloudUrl(url) {
+    localStorage.setItem(CLOUD_URL_KEY, url.trim());
+  }
+
+  async function syncWithCloud(interactive = false) {
+    const cloudUrl = getCloudUrl();
+    if (!cloudUrl) {
+      if (interactive) openCloudModal();
+      return;
+    }
+
+    if (btnSyncCloud) {
+      btnSyncCloud.querySelector('i').classList.add('fa-spin');
+    }
+
+    try {
+      const resp = await fetch(`${cloudUrl}?action=list_cases`, { method: 'GET' });
+      if (!resp.ok) throw new Error('Error al conectar con Sheets');
+      const json = await resp.json();
+
+      if ((json.status === 'success' || json.ok === true) && Array.isArray(json.data)) {
+        const remoteCases = json.data;
+        const localMap = new Map();
+        cases.forEach(c => localMap.set(String(c.id || c.orden), c));
+
+        remoteCases.forEach(rc => {
+          const key = String(rc.id || rc.orden);
+          if (localMap.has(key)) {
+            const local = localMap.get(key);
+            if ((rc.timestamp || 0) >= (local.timestamp || 0)) {
+              localMap.set(key, { ...local, ...rc });
+            }
+          } else {
+            localMap.set(key, rc);
+          }
+        });
+
+        cases = Array.from(localMap.values());
+        saveCases();
+        renderCases();
+
+        if (interactive) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Sincronizado con Sheets',
+            text: `Base actualizada (${cases.length} casos).`,
+            timer: 1400,
+            showConfirmButton: false
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Sync cloud warning:', err);
+      if (interactive) {
+        Swal.fire('Atención', 'No se pudo sincronizar con Google Sheets. Revisa el enlace Apps Script.', 'warning');
+      }
+    } finally {
+      if (btnSyncCloud) {
+        btnSyncCloud.querySelector('i').classList.remove('fa-spin');
+      }
+    }
+  }
+
+  async function pushCaseToCloud(caseObj) {
+    const cloudUrl = getCloudUrl();
+    if (!cloudUrl) return;
+    try {
+      await fetch(cloudUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'save_case', case: caseObj })
+      });
+    } catch (e) {
+      console.warn('Error enviando caso a Sheets:', e);
+    }
+  }
+
+  async function updateStatusInCloud(id, newStatus) {
+    const cloudUrl = getCloudUrl();
+    if (!cloudUrl) return;
+    try {
+      await fetch(cloudUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'update_status', id, estado: newStatus })
+      });
+    } catch (e) {
+      console.warn('Error actualizando estado en Sheets:', e);
+    }
+  }
+
+  async function deleteCaseInCloud(id) {
+    const cloudUrl = getCloudUrl();
+    if (!cloudUrl) return;
+    try {
+      await fetch(cloudUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'delete_case', id })
+      });
+    } catch (e) {
+      console.warn('Error eliminando caso en Sheets:', e);
+    }
+  }
+
+  function openCloudModal() {
+    if (inputCloudUrl) inputCloudUrl.value = getCloudUrl();
+    if (modalCloudBackdrop) modalCloudBackdrop.style.display = 'flex';
+  }
+
+  function closeCloudModal() {
+    if (modalCloudBackdrop) modalCloudBackdrop.style.display = 'none';
+  }
+
+  // 14. REPORTES Y EXPORTACIÓN
+  if (btnCopiarResumenWhatsApp) {
+    btnCopiarResumenWhatsApp.addEventListener('click', () => {
+      const activos = cases.filter(c => c.estado !== 'Realizado' && c.estado !== 'Resuelto');
+      if (activos.length === 0) {
+        Swal.fire('Sin pendientes', 'No hay casos pendientes actualmente.', 'info');
+        return;
+      }
+
+      let report = `*SICS CONTROL Y SEGUIMIENTO — PENDIENTES*\n`;
+      report += `Fecha: ${new Date().toLocaleDateString('es-VE')}\n`;
+      report += `Total pendientes: ${activos.length}\n\n`;
+
+      activos.forEach(c => {
+        report += `• *Orden #${c.orden}* | ${c.cliente} | ${c.zona} | Cuad: ${c.cuadrilla || 'S/A'} | Mot: ${c.motivo || 'N/A'}\n`;
+      });
+
+      navigator.clipboard.writeText(report).then(() => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Reporte consolidado copiado',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      });
+    });
+  }
+
+  if (btnExportar) {
+    btnExportar.addEventListener('click', () => {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(cases, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute('href', dataStr);
+      dlAnchor.setAttribute('download', `sics_casos_${new Date().toISOString().split('T')[0]}.json`);
+      dlAnchor.click();
+    });
+  }
+
+  // 15. EVENTOS GENERALES UI
+  if (btnNuevo) btnNuevo.addEventListener('click', () => openModal());
+  if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+  if (btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) closeModal();
+    });
+  }
+
+  if (btnAutoParse) {
+    btnAutoParse.addEventListener('click', () => {
+      parsePastedOrder(rawOrderText.value);
+    });
+  }
+
+  // Pegado directo en el textarea
+  if (rawOrderText) {
+    rawOrderText.addEventListener('paste', () => {
+      setTimeout(() => parsePastedOrder(rawOrderText.value), 60);
+    });
+  }
+
+  // Eventos Nube
+  if (btnSyncCloud) btnSyncCloud.addEventListener('click', () => syncWithCloud(true));
+  if (btnConfigCloud) btnConfigCloud.addEventListener('click', openCloudModal);
+  if (btnCloseCloudModal) btnCloseCloudModal.addEventListener('click', closeCloudModal);
+  if (btnCancelCloudModal) btnCancelCloudModal.addEventListener('click', closeCloudModal);
+  if (modalCloudBackdrop) {
+    modalCloudBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalCloudBackdrop) closeCloudModal();
+    });
+  }
+
+  if (btnSaveCloudUrl) {
+    btnSaveCloudUrl.addEventListener('click', () => {
+      const val = inputCloudUrl.value.trim();
+      setCloudUrl(val);
+      closeCloudModal();
+      if (val) syncWithCloud(true);
+    });
+  }
+
+  // Filtros dinámicos
+  if (inputBuscar) inputBuscar.addEventListener('input', renderCases);
+  if (filtroSupervisor) filtroSupervisor.addEventListener('change', renderCases);
+  if (filtroSolicitante) filtroSolicitante.addEventListener('change', renderCases);
+  if (filtroZona) filtroZona.addEventListener('change', renderCases);
+  if (filtroEstado) filtroEstado.addEventListener('change', renderCases);
+
+  if (btnLimpiarFiltros) {
+    btnLimpiarFiltros.addEventListener('click', () => {
+      inputBuscar.value = '';
+      filtroSupervisor.value = '';
+      filtroSolicitante.value = '';
+      filtroZona.value = '';
+      filtroEstado.value = '';
+      renderCases();
+    });
+  }
+
+  // Control de Tema
   function initTheme() {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
     applyTheme(savedTheme);
@@ -157,946 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. CÁLCULO DE TIEMPO TRANSCURRIDO Y ALERTA >2 HORAS
-  function formatElapsedTime(timestamp) {
-    if (!timestamp) return 'Reciente';
-    const diffMs = Date.now() - Number(timestamp);
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'Hace instantes';
-    if (mins < 60) return `Hace ${mins} min`;
-    const hours = Math.floor(mins / 60);
-    const remMins = mins % 60;
-    return `Hace ${hours}h ${remMins}m`;
-  }
-
-  function getElapsedMinutes(timestamp) {
-    if (!timestamp) return 0;
-    return Math.floor((Date.now() - Number(timestamp)) / 60000);
-  }
-
-  // 6. RENDERIZAR TARJETAS
-  function renderCases() {
-    const q = (inputBuscar.value || '').toLowerCase().trim();
-    const supFilter = filtroSupervisor.value;
-    const solFilter = filtroSolicitante.value;
-    const zonaFilter = filtroZona.value;
-    const estadoFilter = filtroEstado.value;
-
-    const filtered = cases.filter(c => {
-      const matchQ = !q || (
-        (c.orden && c.orden.toLowerCase().includes(q)) ||
-        (c.ticket && c.ticket.toLowerCase().includes(q)) ||
-        (c.cliente && c.cliente.toLowerCase().includes(q)) ||
-        (c.cedula && c.cedula.toLowerCase().includes(q)) ||
-        (c.mdt && c.mdt.toLowerCase().includes(q)) ||
-        (c.motivo && c.motivo.toLowerCase().includes(q)) ||
-        (c.cuadrilla && c.cuadrilla.toLowerCase().includes(q)) ||
-        (c.solicitado_por && c.solicitado_por.toLowerCase().includes(q)) ||
-        (c.direccion && c.direccion.toLowerCase().includes(q))
-      );
-      const matchSup = !supFilter || c.supervisor === supFilter;
-      const matchSol = !solFilter || (c.solicitado_por && c.solicitado_por.includes(solFilter));
-      const matchZona = !zonaFilter || c.zona === zonaFilter;
-      const matchEstado = !estadoFilter || c.estado === estadoFilter;
-      return matchQ && matchSup && matchSol && matchZona && matchEstado;
-    });
-
-    if (countFiltrados) countFiltrados.textContent = filtered.length;
-
-    // KPIs Globales
-    const pendientes = cases.filter(c => c.estado !== 'Resuelto').length;
-    const criticos = cases.filter(c => c.prioridad === 'CRÍTICA' && c.estado !== 'Resuelto').length;
-    const resueltos = cases.filter(c => c.estado === 'Resuelto').length;
-
-    if (kpiPendientes) kpiPendientes.textContent = pendientes;
-    if (kpiCriticos) kpiCriticos.textContent = criticos;
-    if (kpiResueltos) kpiResueltos.textContent = resueltos;
-
-    if (filtered.length === 0) {
-      casesContainer.innerHTML = '';
-      if (emptyState) emptyState.style.display = 'block';
-      return;
-    }
-
-    if (emptyState) emptyState.style.display = 'none';
-    casesContainer.innerHTML = filtered.map(c => {
-      const isResuelto = c.estado === 'Resuelto';
-      const isDiferido = c.estado === 'Diferido';
-      const badgePrioClass = c.prioridad === 'CRÍTICA' ? 'prio-critica' : (c.prioridad === 'ALTA' ? 'prio-alta' : 'prio-media');
-      const timeStr = formatElapsedTime(c.timestamp);
-      const elapsedMins = getElapsedMinutes(c.timestamp);
-      const isLate = !isResuelto && !isDiferido && elapsedMins >= 120;
-
-      return `
-        <div class="case-card ${isResuelto ? 'case-resolved' : ''}">
-          <div class="case-card-header">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span class="badge-order">#${c.orden}</span>
-              ${c.ticket ? `<span class="badge-ticket"><i class="fas fa-ticket-alt"></i> Ticket #${c.ticket}</span>` : ''}
-              <span class="badge-prio ${badgePrioClass}">${c.prioridad}</span>
-              ${isLate ? `<span class="badge-alert-latigo" title="Alerta: caso escalado hace más de 2 horas sin resolverse"><i class="fas fa-exclamation-triangle"></i> >2h sin avance</span>` : ''}
-            </div>
-            <div class="case-time" title="Tiempo transcurrido desde el registro">
-              <i class="far fa-clock"></i> ${timeStr}
-            </div>
-          </div>
-
-          <div class="case-zone-row">
-            <i class="fas fa-map-marker-alt" style="color:var(--corp-active);"></i>
-            <strong>${c.mdt || 'MDT N/A'}</strong> &bull; <span>${c.zona}</span>
-          </div>
-
-          <div class="case-client-row">
-            <i class="fas fa-user"></i>
-            <span>${c.cliente || 'Abonado no especificado'}</span>
-            ${c.cedula ? `<span class="badge-cedula"><i class="fas fa-id-card"></i> ${c.cedula}</span>` : ''}
-            ${c.telefono ? `<a href="tel:${c.telefono}" class="tel-link"><i class="fas fa-phone-alt"></i> ${c.telefono}</a>` : ''}
-          </div>
-
-          ${c.direccion ? `
-            <div class="case-address-row">
-              <i class="fas fa-map-pin"></i>
-              <span>${c.direccion}</span>
-            </div>
-          ` : ''}
-
-          <div style="display:flex; flex-direction:column; gap:4px; font-size:0.83rem; margin-top:6px;">
-            <div><i class="fas fa-hard-hat" style="color:#f59e0b; width:16px;"></i> Cuadrilla Asignada: <strong>${c.cuadrilla || 'Por asignar'}</strong></div>
-            <div><i class="fas fa-user-tie" style="color:var(--corp-active); width:16px;"></i> Solicitó: <strong>${c.solicitado_por || 'Gerencia'}</strong></div>
-            <div style="color:var(--dash-text-muted); font-size:0.78rem;">
-              <i class="fas fa-user-shield" style="width:16px;"></i> Escalado a: <strong>${c.supervisor}</strong>
-            </div>
-          </div>
-
-          ${c.motivo ? `
-            <div class="case-motivo-box">
-              <div class="motivo-label">Motivo de Operación:</div>
-              <div class="motivo-text">${c.motivo}</div>
-            </div>
-          ` : ''}
-
-          ${isDiferido ? `
-            <div class="case-diferido-box">
-              <i class="far fa-calendar-alt"></i>
-              <span><strong>Diferido para:</strong> ${c.fecha_diferido || 'Fecha por definir'} ${c.hora_diferido ? 'a las ' + c.hora_diferido : ''} &bull; <em>${c.motivo_diferido || 'Sin motivo'}</em></span>
-            </div>
-          ` : ''}
-
-          ${c.avance ? `
-            <div class="case-avance-box" title="Avance interno para tu control">
-              <i class="fas fa-sticky-note" style="color:#f59e0b;"></i>
-              <span><strong>Avance:</strong> ${c.avance}</span>
-            </div>
-          ` : ''}
-
-          <div class="case-status-row">
-            <span class="status-indicator status-${(c.estado || 'escalado').replace(/[^a-zA-Z]/g, '').toLowerCase()}">
-              ${c.estado}
-            </span>
-
-            <div class="case-card-actions">
-              <button class="btn-icon btn-wa" onclick="window.copiarFichaWhatsApp('${c.id}')" title="Copiar ficha sobria para WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="btn-icon btn-edit" onclick="window.editarCaso('${c.id}')" title="Editar caso / actualizar avance">
-                <i class="fas fa-edit"></i>
-              </button>
-              ${!isResuelto ? `
-                <button class="btn-icon btn-check" onclick="window.marcarResuelto('${c.id}')" title="Marcar como Resuelto">
-                  <i class="fas fa-check"></i>
-                </button>
-              ` : ''}
-              <button class="btn-icon btn-del" onclick="window.eliminarCaso('${c.id}')" title="Eliminar de la lista">
-                <i class="fas fa-trash-alt"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // NORMALIZACIÓN INTELIGENTE DE TÉCNICOS LÍDERES SICS
-  function normalizeLeaderName(raw) {
-    if (!raw) return '';
-    let str = raw.trim();
-    // Formato con coma: "Gómez Rosell, Luis Leopoldo" -> "Luis Gómez"
-    if (str.includes(',')) {
-      const parts = str.split(',');
-      const apellidos = parts[0].trim().split(/\s+/);
-      const nombres = parts[1].trim().split(/\s+/);
-      const pNombre = nombres[0] || '';
-      const pApellido = apellidos[0] || '';
-      str = `${pNombre} ${pApellido}`.trim();
-    } else {
-      // Remover sufijos como VGT, (MDT), / La Villa Zona 3, etc.
-      str = str.replace(/\bVGT\b/gi, '').replace(/\(.*?\)/g, '').split('/')[0].trim();
-      const words = str.split(/\s+/).filter(Boolean);
-      
-      // Buscar coincidencia en directorio maestro de líderes SICS
-      if (window.SICS_MASTER_DATA && window.SICS_MASTER_DATA.supervisores_y_cuadrillas) {
-        const allSup = window.SICS_MASTER_DATA.supervisores_y_cuadrillas;
-        for (const z in allSup) {
-          for (const s in allSup[z]) {
-            for (const c of allSup[z][s]) {
-              const lParts = c.lider.toLowerCase().split(/\s+/);
-              if (lParts.every(lp => str.toLowerCase().includes(lp))) {
-                return c.lider;
-              }
-            }
-          }
-        }
-      }
-      
-      if (words.length >= 4) {
-        str = `${words[0]} ${words[2]}`; // E.g. Luis Leopoldo Gómez Rosell -> Luis Gómez
-      } else if (words.length === 3) {
-        str = `${words[0]} ${words[1]}`;
-      }
-    }
-    // Capitalización estándar
-    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-  }
-
-  function findSupervisorByLeader(leaderName) {
-    if (!leaderName || !window.SICS_MASTER_DATA) return null;
-    const lLower = leaderName.toLowerCase();
-    const allSup = window.SICS_MASTER_DATA.supervisores_y_cuadrillas;
-    for (const z in allSup) {
-      for (const sup in allSup[z]) {
-        for (const c of allSup[z][sup]) {
-          const cLower = c.lider.toLowerCase();
-          if (cLower === lLower || lLower.includes(cLower) || cLower.includes(lLower)) {
-            return sup;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  // 7. PEGADO MÁGICO UNIVERSAL 2.0 (SIGO / ZENDESK + ODOO + WHATSAPP)
-  function parsePastedOrder(text) {
-    if (!text || !text.trim()) return;
-
-    const raw = text.trim();
-    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-
-    let detectedOrden = '';
-    let detectedTicket = '';
-    let detectedCliente = '';
-    let detectedCedula = '';
-    let detectedTelefono = '';
-    let detectedDireccion = '';
-    let detectedMdt = '';
-    let detectedZona = '';
-    let detectedCuadrilla = '';
-    let detectedSolicitadoPor = '';
-    let detectedPrioridad = 'MEDIA';
-    let detectedMotivo = '';
-    let detectedComentario = '';
-
-    // ESTRATEGIA A: FORMATO ODOO (F-OPE-AIRTEK-001/498085)
-    if (raw.includes('F-OPE-AIRTEK') || (lines.length >= 6 && lines[0].includes('/'))) {
-      const matchOdooOrden = lines[0].match(/(\d{5,8})/);
-      if (matchOdooOrden) detectedOrden = matchOdooOrden[1];
-
-      if (lines.length > 1) detectedMotivo = lines[1];
-      if (lines.length > 2) detectedCliente = lines[2];
-      if (lines.length > 3) detectedCedula = lines[3];
-      if (lines.length > 4) detectedTelefono = normalizePhone(lines[4]);
-      if (lines.length > 5) detectedDireccion = lines[5];
-
-      // Buscar nodo en las líneas
-      const nodoLine = lines.find(l => l.toUpperCase().includes('NODO'));
-      if (nodoLine) {
-        if (nodoLine.toUpperCase().includes('BARRANQUITAS')) {
-          detectedZona = 'Barranquitas';
-          detectedMdt = 'MBR001';
-        } else if (nodoLine.toUpperCase().includes('CONCEPCION') || nodoLine.toUpperCase().includes('CONCEPCIÓN')) {
-          detectedZona = 'La Concepción';
-          detectedMdt = 'MCN001';
-        } else if (nodoLine.toUpperCase().includes('VILLA')) {
-          detectedZona = 'La Villa';
-          detectedMdt = 'MLV001';
-        }
-      }
-
-      // Cuadrilla y Solicitante en Odoo
-      if (lines.length >= 8) detectedCuadrilla = normalizeLeaderName(lines[7]);
-      if (lines.length >= 9) detectedSolicitadoPor = lines[8];
-    }
-    // ESTRATEGIA B: FORMATO SIGO / ZENDESK / SIX
-    else {
-      // Orden
-      const matchSigoOrden = raw.match(/(?:Orden\s*N°?|Orden\s*N|Orden|OT)[\s:#]*(\d{5,8})/i) || raw.match(/\b(\d{6})\b/);
-      if (matchSigoOrden) detectedOrden = matchSigoOrden[1];
-
-      // Ticket Zendesk / Sigo
-      const matchTicket = raw.match(/N°?\s*ticket[\s:#]*(\d+)/i) || raw.match(/ticket[\s:#]*(\d+)/i);
-      if (matchTicket) detectedTicket = matchTicket[1];
-
-      // Motivo en cabecera (Ej: "Reubicación - Orden N 315484")
-      const matchHeaderMotivo = raw.match(/^([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+?)\s*-\s*Orden/i);
-      if (matchHeaderMotivo) {
-        detectedMotivo = matchHeaderMotivo[1].trim();
-      }
-
-      // Nombre y apellido
-      const matchCliente = raw.match(/Nombre\s+y\s+apellido\s*\n\s*([^\n\r]+)/i);
-      if (matchCliente) detectedCliente = matchCliente[1].trim();
-
-      // Cédula / Identificación
-      const matchId = raw.match(/Identificación\s*\n\s*([^\n\r]+)/i) || raw.match(/Cédula[\s:#]*([VvEe]?[-]?\d+)/i);
-      if (matchId) detectedCedula = matchId[1].trim();
-
-      // Teléfono (primario y secundario en comentario)
-      const matchTel = raw.match(/Teléfono\s*\n\s*([^\n\r]+)/i);
-      if (matchTel) detectedTelefono = normalizePhone(matchTel[1].trim());
-
-      const matchComentTel = raw.match(/número:\s*([0-9\s-]+)/i);
-      if (matchComentTel && matchComentTel[1]) {
-        const secTel = normalizePhone(matchComentTel[1].trim());
-        if (secTel && !detectedTelefono) detectedTelefono = secTel;
-        else if (secTel && detectedTelefono && detectedTelefono !== secTel) {
-          detectedTelefono = `${secTel} (Alt: ${detectedTelefono})`;
-        }
-      }
-
-      // Dirección
-      const matchDir = raw.match(/Dirección\s+servicio\s*\n\s*([^\n\r]+)/i) || raw.match(/Dirección[\s:#]*([^\n\r]+)/i);
-      if (matchDir) detectedDireccion = matchDir[1].trim();
-
-      // Cuadrilla asignada y Técnico líder
-      const matchTecLider = raw.match(/Técnico\s+líder\s*\n\s*([^\n\r]+)/i) || raw.match(/Técnico\s+lider[\s:#]*([^\n\r]+)/i);
-      const matchCuad = raw.match(/Cuadrilla\s+asignada\s*\n\s*([^\n\r]+)/i) || raw.match(/Cuadrilla[\s:#]*([^\n\r]+)/i);
-      if (matchTecLider && matchTecLider[1].trim()) {
-        detectedCuadrilla = normalizeLeaderName(matchTecLider[1].trim());
-      } else if (matchCuad && matchCuad[1].trim()) {
-        detectedCuadrilla = normalizeLeaderName(matchCuad[1].trim());
-      }
-
-      // Usuario Zendesk / Solicitante
-      const matchZendesk = raw.match(/Usuario\s+Zendesk\s*\n\s*([^\n\r]+)/i);
-      if (matchZendesk) {
-        detectedSolicitadoPor = `${matchZendesk[1].trim()} (Zendesk)`;
-      } else {
-        const matchSol = raw.match(/Solicitado\s+por[\s:#]*([^\n\r]+)/i);
-        if (matchSol) detectedSolicitadoPor = matchSol[1].trim();
-      }
-
-      // MDT
-      const matchMdt = raw.match(/\bM[DLSCNBR]{2,3}[-\s]?\d{2,3}(?:\.\d+)?\b/i) || raw.match(/MDT\s*\n\s*([^\n\r]+)/i);
-      if (matchMdt) {
-        detectedMdt = (matchMdt[1] || matchMdt[0]).toUpperCase().replace(/[-\s]/g, '');
-      }
-
-      // Comentario
-      const matchComent = raw.match(/Comentario\s*\n\s*([^\n\r]+)/i);
-      if (matchComent) detectedComentario = matchComent[1].trim();
-
-      // Prioridad
-      const matchPrio = raw.match(/Prioridad\s*([^\n\r]+)/i);
-      if (matchPrio) {
-        const pText = matchPrio[1].toUpperCase();
-        if (pText.includes('CRIT') || pText.includes('CRÍT')) detectedPrioridad = 'CRÍTICA';
-        else if (pText.includes('ALT')) detectedPrioridad = 'ALTA';
-        else detectedPrioridad = 'MEDIA';
-      }
-    }
-
-    // APLICAR CAMPOS EN EL FORMULARIO
-    if (detectedOrden) document.getElementById('caseOrden').value = detectedOrden;
-    if (detectedTicket) document.getElementById('caseTicket').value = detectedTicket;
-    if (detectedCliente) document.getElementById('caseCliente').value = detectedCliente;
-    if (detectedCedula) document.getElementById('caseCedula').value = detectedCedula;
-    if (detectedTelefono) document.getElementById('caseTelefono').value = detectedTelefono;
-    if (detectedDireccion) document.getElementById('caseDireccion').value = detectedDireccion;
-    if (detectedCuadrilla) {
-      document.getElementById('caseCuadrilla').value = detectedCuadrilla;
-      const matchedSup = findSupervisorByLeader(detectedCuadrilla);
-      if (matchedSup) {
-        setSelectValue('caseSupervisor', matchedSup);
-      }
-    }
-    if (detectedSolicitadoPor) document.getElementById('caseSolicitadoPor').value = detectedSolicitadoPor;
-    if (detectedPrioridad) document.getElementById('casePrioridad').value = detectedPrioridad;
-
-    if (detectedComentario && !document.getElementById('caseAvance').value) {
-      document.getElementById('caseAvance').value = detectedComentario;
-    }
-
-    // RESOLUCIÓN DE MDT Y ZONA
-    if (detectedMdt) {
-      document.getElementById('caseMdt').value = detectedMdt;
-      if (MDT_SECTOR_MAP[detectedMdt]) {
-        detectedZona = MDT_SECTOR_MAP[detectedMdt];
-      }
-    }
-
-    if (detectedZona) {
-      setSelectValue('caseZona', detectedZona);
-    }
-
-    // AJUSTAR MOTIVO ESTANDARIZADO
-    if (detectedMotivo) {
-      mapMotivoToSelect(detectedMotivo);
-    }
-
-    Swal.fire({
-      icon: 'success',
-      title: '¡Orden Reconocida!',
-      html: `<b>Orden:</b> #${detectedOrden || 'S/N'}<br><b>Cliente:</b> ${detectedCliente || 'Detectado'}<br><b>MDT / Zona:</b> ${detectedMdt || 'N/A'} - ${detectedZona || 'Detectada'}`,
-      timer: 1600,
-      showConfirmButton: false
-    });
-  }
-
-  function normalizePhone(str) {
-    if (!str) return '';
-    const clean = str.replace(/[^0-9]/g, '');
-    if (clean.length === 10 && clean.startsWith('4')) {
-      return `0${clean.slice(0, 3)}-${clean.slice(3)}`;
-    }
-    if (clean.length === 11 && clean.startsWith('04')) {
-      return `${clean.slice(0, 4)}-${clean.slice(4)}`;
-    }
-    return str;
-  }
-
-  function setSelectValue(selectId, val) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    for (let i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value.toLowerCase() === val.toLowerCase() ||
-          sel.options[i].text.toLowerCase().includes(val.toLowerCase())) {
-        sel.selectedIndex = i;
-        return;
-      }
-    }
-  }
-
-  function mapMotivoToSelect(motivoText) {
-    const motivoSelect = document.getElementById('caseMotivoSelect');
-    const motivoDetalle = document.getElementById('caseMotivoDetalle');
-    const textLower = motivoText.toLowerCase();
-
-    let found = false;
-    for (let i = 0; i < motivoSelect.options.length; i++) {
-      const optVal = motivoSelect.options[i].value.toLowerCase();
-      if (textLower.includes('reubicaci') && optVal.includes('reubicación')) {
-        motivoSelect.selectedIndex = i;
-        found = true;
-        break;
-      } else if ((textLower.includes('reconexi') || textLower.includes('recuperado')) && optVal.includes('reconexión')) {
-        motivoSelect.selectedIndex = i;
-        found = true;
-        break;
-      } else if (textLower.includes('sin servicio') || textLower.includes('los rojo')) {
-        if (optVal.includes('sin servicio')) { motivoSelect.selectedIndex = i; found = true; break; }
-      } else if (textLower.includes('lentitud') || textLower.includes('atenuaci')) {
-        if (optVal.includes('lentitud')) { motivoSelect.selectedIndex = i; found = true; break; }
-      }
-    }
-
-    if (!found) {
-      motivoSelect.value = 'Otro';
-      motivoDetalle.style.display = 'block';
-      motivoDetalle.value = motivoText;
-    } else {
-      motivoDetalle.style.display = 'none';
-      motivoDetalle.value = '';
-    }
-  }
-
-  // 8. HANDLERS GLOBALES PARA EL FORMULARIO
-  window.handleEstadoChange = function(val) {
-    const diferidoBox = document.getElementById('diferidoFieldsContainer');
-    if (diferidoBox) {
-      diferidoBox.style.display = (val === 'Diferido') ? 'block' : 'none';
-    }
-  };
-
-  window.handleMotivoChange = function(val) {
-    const detalleInput = document.getElementById('caseMotivoDetalle');
-    if (detalleInput) {
-      detalleInput.style.display = (val === 'Otro') ? 'block' : 'none';
-      if (val !== 'Otro') detalleInput.value = '';
-    }
-  };
-
-  // 9. MODAL NUEVO / EDITAR
-  function openModal(caseData = null) {
-    caseForm.reset();
-    document.getElementById('rawOrderText').value = '';
-    window.handleEstadoChange('Escalado');
-    window.handleMotivoChange('Reubicación de equipo / acometida');
-
-    if (caseData) {
-      document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Actualizar Escalamiento';
-      document.getElementById('editCaseId').value = caseData.id;
-      document.getElementById('caseOrden').value = caseData.orden || '';
-      document.getElementById('caseTicket').value = caseData.ticket || '';
-      document.getElementById('caseSupervisor').value = caseData.supervisor || 'Roberto Carrillo';
-      setSelectValue('caseZona', caseData.zona || 'Rotaria');
-      document.getElementById('caseMdt').value = caseData.mdt || '';
-      document.getElementById('caseCuadrilla').value = caseData.cuadrilla || '';
-      document.getElementById('caseSolicitadoPor').value = caseData.solicitado_por || '';
-      document.getElementById('caseCliente').value = caseData.cliente || '';
-      document.getElementById('caseCedula').value = caseData.cedula || '';
-      document.getElementById('caseTelefono').value = caseData.telefono || '';
-      document.getElementById('caseDireccion').value = caseData.direccion || '';
-      document.getElementById('casePrioridad').value = caseData.prioridad || 'MEDIA';
-      document.getElementById('caseEstado').value = caseData.estado || 'Escalado';
-      window.handleEstadoChange(caseData.estado || 'Escalado');
-
-      if (caseData.estado === 'Diferido') {
-        document.getElementById('caseFechaDiferido').value = caseData.fecha_diferido || '';
-        document.getElementById('caseHoraDiferido').value = caseData.hora_diferido || '14:00';
-        document.getElementById('caseMotivoDiferido').value = caseData.motivo_diferido || 'Pospuesto por cliente para la tarde';
-      }
-
-      mapMotivoToSelect(caseData.motivo || 'Reubicación de equipo / acometida');
-      document.getElementById('caseAvance').value = caseData.avance || '';
-    } else {
-      document.getElementById('modalTitle').innerHTML = '<i class="fas fa-tools"></i> Registrar Escalamiento';
-      document.getElementById('editCaseId').value = '';
-      document.getElementById('caseEstado').value = 'Escalado';
-      document.getElementById('casePrioridad').value = 'MEDIA';
-      document.getElementById('caseSupervisor').value = 'Roberto Carrillo';
-      document.getElementById('caseZona').value = 'Rotaria';
-      document.getElementById('caseSolicitadoPor').value = 'Cecilia Jenny Espinoza (Zendesk)';
-    }
-
-    modalBackdrop.style.display = 'flex';
-  }
-
-  function closeModal() {
-    modalBackdrop.style.display = 'none';
-  }
-
-  caseForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const editId = document.getElementById('editCaseId').value;
-    const orden = document.getElementById('caseOrden').value.trim();
-    const ticket = document.getElementById('caseTicket').value.trim();
-    const supervisor = document.getElementById('caseSupervisor').value;
-    const zona = document.getElementById('caseZona').value;
-    const mdt = document.getElementById('caseMdt').value.trim();
-    const cuadrilla = document.getElementById('caseCuadrilla').value.trim();
-    const solicitado_por = document.getElementById('caseSolicitadoPor').value.trim();
-    const cliente = document.getElementById('caseCliente').value.trim();
-    const cedula = document.getElementById('caseCedula').value.trim();
-    const telefono = document.getElementById('caseTelefono').value.trim();
-    const direccion = document.getElementById('caseDireccion').value.trim();
-    const prioridad = document.getElementById('casePrioridad').value;
-    const estado = document.getElementById('caseEstado').value;
-
-    const motivoSelectVal = document.getElementById('caseMotivoSelect').value;
-    const motivoDetalleVal = document.getElementById('caseMotivoDetalle').value.trim();
-    const motivo = (motivoSelectVal === 'Otro' && motivoDetalleVal) ? motivoDetalleVal : motivoSelectVal;
-
-    let fecha_diferido = '';
-    let hora_diferido = '';
-    let motivo_diferido = '';
-
-    if (estado === 'Diferido') {
-      fecha_diferido = document.getElementById('caseFechaDiferido').value;
-      hora_diferido = document.getElementById('caseHoraDiferido').value;
-      motivo_diferido = document.getElementById('caseMotivoDiferido').value;
-    }
-
-    const avance = document.getElementById('caseAvance').value.trim();
-
-    if (!orden || !mdt || !cuadrilla || !solicitado_por) {
-      Swal.fire('Atención', 'Por favor completa: Orden, MDT, Cuadrilla Asignada y Quién Solicitó.', 'warning');
-      return;
-    }
-
-    let savedCase = null;
-
-    if (editId) {
-      const idx = cases.findIndex(c => c.id === editId);
-      if (idx !== -1) {
-        cases[idx] = {
-          ...cases[idx],
-          orden, ticket, supervisor, zona, mdt, cuadrilla, solicitado_por, cliente, cedula, telefono, direccion,
-          prioridad, estado, motivo, avance, fecha_diferido, hora_diferido, motivo_diferido
-        };
-        savedCase = cases[idx];
-      }
-    } else {
-      const newCase = {
-        id: 'case_' + (orden || Date.now()),
-        orden, ticket, supervisor, zona, mdt, cuadrilla, solicitado_por, cliente, cedula, telefono, direccion,
-        prioridad, estado, motivo, avance, fecha_diferido, hora_diferido, motivo_diferido,
-        timestamp: Date.now()
-      };
-      cases.unshift(newCase);
-      savedCase = newCase;
-    }
-
-    saveCases();
-    renderCases();
-    closeModal();
-
-    // Sincronizar con la nube si está conectada
-    if (savedCase) {
-      pushCaseToCloud(savedCase);
-    }
-
-    Swal.fire({
-      icon: 'success',
-      title: editId ? 'Caso actualizado' : 'Escalamiento registrado',
-      timer: 1300,
-      showConfirmButton: false
-    });
-  });
-
-  // 10. COPIAR FICHA WHATSAPP SOBRIA Y PROFESIONAL
-  window.copiarFichaWhatsApp = function(id) {
-    const c = cases.find(item => item.id === id);
-    if (!c) return;
-
-    const timeStr = formatElapsedTime(c.timestamp);
-    let msg = `Orden: #${c.orden}\n`;
-    if (c.ticket) msg += `Ticket: #${c.ticket}\n`;
-    msg += `Cliente: ${c.cliente || 'No especificado'}${c.cedula ? ` (${c.cedula})` : ''}\n`;
-    if (c.telefono) msg += `Contacto: ${c.telefono}\n`;
-    if (c.direccion) msg += `Dirección: ${c.direccion}\n`;
-    msg += `Cuadrilla Asignada: ${c.cuadrilla || 'Por asignar'}\n`;
-    msg += `Solicitado por: ${c.solicitado_por || 'Gerencia'}\n`;
-    if (c.estado === 'Diferido') {
-      msg += `Estado: Diferido para ${c.fecha_diferido || 'hoy'} ${c.hora_diferido ? 'a las ' + c.hora_diferido : ''} (${c.motivo_diferido || 'Pospuesto'})\n`;
-    }
-    msg += `Tiempo Escalado: ${timeStr}`;
-
-    navigator.clipboard.writeText(msg).then(() => {
-      Swal.fire({
-        icon: 'success',
-        title: 'Ficha copiada',
-        text: 'Formato sobrio listo para el chat del supervisor.',
-        timer: 1400,
-        showConfirmButton: false
-      });
-    });
-  };
-
-  window.editarCaso = function(id) {
-    const c = cases.find(item => item.id === id);
-    if (c) openModal(c);
-  };
-
-  window.marcarResuelto = function(id) {
-    const idx = cases.findIndex(item => item.id === id);
-    if (idx !== -1) {
-      cases[idx].estado = 'Resuelto';
-      saveCases();
-      renderCases();
-      updateStatusInCloud(id, 'Resuelto');
-      Swal.fire({
-        icon: 'success',
-        title: 'Caso Resuelto',
-        timer: 1200,
-        showConfirmButton: false
-      });
-    }
-  };
-
-  window.eliminarCaso = function(id) {
-    Swal.fire({
-      title: '¿Eliminar este caso?',
-      text: 'Se removerá de tu lista de seguimiento activo.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
-    }).then(res => {
-      if (res.isConfirmed) {
-        cases = cases.filter(item => item.id !== id);
-        saveCases();
-        renderCases();
-        deleteCaseInCloud(id);
-      }
-    });
-  };
-
-  // 11. SINCRONIZACIÓN GOOGLE SHEETS / APPS SCRIPT
-  function getCloudUrl() {
-    return localStorage.getItem(CLOUD_URL_KEY) || DEFAULT_CLOUD_URL;
-  }
-
-  function setCloudUrl(url) {
-    localStorage.setItem(CLOUD_URL_KEY, url.trim());
-  }
-
-  async function syncWithCloud(interactive = false) {
-    const cloudUrl = getCloudUrl();
-    if (!cloudUrl) {
-      if (interactive) {
-        openCloudModal();
-      }
-      return;
-    }
-
-    if (btnSyncCloud) {
-      btnSyncCloud.querySelector('i').classList.add('fa-spin');
-    }
-
-    try {
-      const resp = await fetch(`${cloudUrl}?action=list_cases`, { method: 'GET' });
-      if (!resp.ok) throw new Error('Error al conectar con la nube');
-      const json = await resp.json();
-
-      if ((json.status === 'success' || json.ok === true) && Array.isArray(json.data)) {
-        // Reconciliación no destructiva por ID
-        const remoteCases = json.data;
-        const localMap = new Map();
-        cases.forEach(c => localMap.set(String(c.id || c.orden), c));
-
-        remoteCases.forEach(rc => {
-          const key = String(rc.id || rc.orden);
-          if (localMap.has(key)) {
-            const local = localMap.get(key);
-            // Si el remoto es más reciente o el local ya fue resuelto
-            if ((rc.timestamp || 0) >= (local.timestamp || 0)) {
-              localMap.set(key, { ...local, ...rc });
-            }
-          } else {
-            localMap.set(key, rc);
-          }
-        });
-
-        cases = Array.from(localMap.values());
-        saveCases();
-        renderCases();
-
-        if (interactive) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Sincronizado con Sheets',
-            text: `Base actualizada (${cases.length} casos cargados).`,
-            timer: 1400,
-            showConfirmButton: false
-          });
-        }
-      }
-    } catch (err) {
-      console.warn('Sync cloud warning:', err);
-      if (interactive) {
-        Swal.fire('Atención', 'No se pudo sincronizar con Google Sheets. Revisa la URL del Web App.', 'warning');
-      }
-    } finally {
-      if (btnSyncCloud) {
-        btnSyncCloud.querySelector('i').classList.remove('fa-spin');
-      }
-    }
-  }
-
-  async function pushCaseToCloud(caseObj) {
-    const cloudUrl = getCloudUrl();
-    if (!cloudUrl) return;
-
-    try {
-      await fetch(cloudUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'save_case', case: caseObj })
-      });
-    } catch (e) {
-      console.warn('Error enviando caso a la nube:', e);
-    }
-  }
-
-  async function updateStatusInCloud(id, newStatus) {
-    const cloudUrl = getCloudUrl();
-    if (!cloudUrl) return;
-
-    try {
-      await fetch(cloudUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'update_status', id, estado: newStatus })
-      });
-    } catch (e) {
-      console.warn('Error actualizando estado en la nube:', e);
-    }
-  }
-
-  async function deleteCaseInCloud(id) {
-    const cloudUrl = getCloudUrl();
-    if (!cloudUrl) return;
-
-    try {
-      await fetch(cloudUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'delete_case', id })
-      });
-    } catch (e) {
-      console.warn('Error eliminando caso en la nube:', e);
-    }
-  }
-
-  function openCloudModal() {
-    if (inputCloudUrl) inputCloudUrl.value = getCloudUrl();
-    if (modalCloudBackdrop) modalCloudBackdrop.style.display = 'flex';
-  }
-
-  function closeCloudModal() {
-    if (modalCloudBackdrop) modalCloudBackdrop.style.display = 'none';
-  }
-
-  // Copiar resumen de pendientes sin emojis
-  if (btnCopiarResumenWhatsApp) {
-    btnCopiarResumenWhatsApp.addEventListener('click', () => {
-      const activos = cases.filter(c => c.estado !== 'Resuelto');
-      if (activos.length === 0) {
-        Swal.fire('Sin pendientes', 'No hay casos pendientes actualmente.', 'info');
-        return;
-      }
-
-      let report = `CASOS PENDIENTES - SEGUIMIENTO ZONA 3\nFecha: ${new Date().toLocaleDateString('es-VE')}\nTotal pendientes: ${activos.length}\n\n`;
-
-      activos.forEach(c => {
-        report += `Orden #${c.orden} | ${c.zona} | Cuadrilla: ${c.cuadrilla} | Solicitó: ${c.solicitado_por} | ${formatElapsedTime(c.timestamp)}\n`;
-      });
-
-      navigator.clipboard.writeText(report).then(() => {
-        Swal.fire({
-          icon: 'success',
-          title: 'Reporte copiado',
-          timer: 1500,
-          showConfirmButton: false
-        });
-      });
-    });
-  }
-
-  // Exportar backup
-  if (btnExportar) {
-    btnExportar.addEventListener('click', () => {
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(cases, null, 2));
-      const dlAnchor = document.createElement('a');
-      dlAnchor.setAttribute('href', dataStr);
-      dlAnchor.setAttribute('download', `casos_zona3_${new Date().toISOString().split('T')[0]}.json`);
-      dlAnchor.click();
-    });
-  }
-
-  // Eventos UI
-  if (btnNuevo) btnNuevo.addEventListener('click', () => openModal());
-  if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
-  if (btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
-  if (modalBackdrop) {
-    modalBackdrop.addEventListener('click', (e) => {
-      if (e.target === modalBackdrop) closeModal();
-    });
-  }
-
-  if (btnAutoParse) {
-    btnAutoParse.addEventListener('click', () => {
-      parsePastedOrder(rawOrderText.value);
-    });
-  }
-
-  // Eventos Nube
-  if (btnSyncCloud) btnSyncCloud.addEventListener('click', () => syncWithCloud(true));
-  if (btnConfigCloud) btnConfigCloud.addEventListener('click', openCloudModal);
-  if (btnCloseCloudModal) btnCloseCloudModal.addEventListener('click', closeCloudModal);
-  if (btnCancelCloudModal) btnCancelCloudModal.addEventListener('click', closeCloudModal);
-  if (modalCloudBackdrop) {
-    modalCloudBackdrop.addEventListener('click', (e) => {
-      if (e.target === modalCloudBackdrop) closeCloudModal();
-    });
-  }
-
-  if (btnSaveCloudUrl) {
-    btnSaveCloudUrl.addEventListener('click', () => {
-      const val = inputCloudUrl.value.trim();
-      setCloudUrl(val);
-      closeCloudModal();
-      if (val) {
-        syncWithCloud(true);
-      }
-    });
-  }
-
-  if (inputBuscar) inputBuscar.addEventListener('input', renderCases);
-  if (filtroSupervisor) filtroSupervisor.addEventListener('change', renderCases);
-  if (filtroSolicitante) filtroSolicitante.addEventListener('change', renderCases);
-  if (filtroZona) filtroZona.addEventListener('change', renderCases);
-  if (filtroEstado) filtroEstado.addEventListener('change', renderCases);
-
-  if (btnLimpiarFiltros) {
-    btnLimpiarFiltros.addEventListener('click', () => {
-      inputBuscar.value = '';
-      filtroSupervisor.value = '';
-      filtroSolicitante.value = '';
-      filtroZona.value = '';
-      filtroEstado.value = '';
-      renderCases();
-    });
-  }
-
-  // ACCIONES RÁPIDAS MÓVILES (BARRA INFERIOR ANDROID)
-  const btnMobileQuickPaste = document.getElementById('btnMobileQuickPaste');
-  const btnMobileNewCase = document.getElementById('btnMobileNewCase');
-  const btnMobileSync = document.getElementById('btnMobileSync');
-  const btnMobileWhatsApp = document.getElementById('btnMobileWhatsApp');
-
-  if (btnMobileQuickPaste) {
-    btnMobileQuickPaste.addEventListener('click', async () => {
-      openModal();
-      try {
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          const text = await navigator.clipboard.readText();
-          if (text && text.trim()) {
-            const rawEl = document.getElementById('rawOrderText');
-            if (rawEl) {
-              rawEl.value = text;
-              parsePastedOrder(text);
-              if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                  icon: 'success',
-                  title: '¡Orden Pegada y Procesada!',
-                  text: 'Los datos de la orden fueron reconocidos exitosamente.',
-                  timer: 1600,
-                  showConfirmButton: false,
-                  toast: true,
-                  position: 'top-end'
-                });
-              }
-            }
-          } else {
-            const rawEl = document.getElementById('rawOrderText');
-            if (rawEl) rawEl.focus();
-          }
-        }
-      } catch (err) {
-        console.warn('[SICS Mobile] Permiso de portapapeles denegado o no disponible:', err);
-        const rawEl = document.getElementById('rawOrderText');
-        if (rawEl) rawEl.focus();
-      }
-    });
-  }
-
-  if (btnMobileNewCase) {
-    btnMobileNewCase.addEventListener('click', () => openModal());
-  }
-
-  if (btnMobileSync) {
-    btnMobileSync.addEventListener('click', () => syncWithCloud(true));
-  }
-
-  if (btnMobileWhatsApp) {
-    btnMobileWhatsApp.addEventListener('click', () => {
-      if (btnCopiarResumenWhatsApp) btnCopiarResumenWhatsApp.click();
-    });
-  }
-
+  // Atajo de teclado (Ctrl + N)
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'n') {
       e.preventDefault();
@@ -1104,7 +1514,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Actualizar tiempos en vivo cada minuto y sincronizar si hay nube
+  // 16. CICLOS DE EJECUCIÓN CONTINUA
+  // Vigilancia de alarmas insistentes cada 5 segundos
+  setInterval(checkReprogrammedAlarms, 5000);
+  checkReprogrammedAlarms();
+
+  // Sincronización en segundo plano con Google Sheets cada 60 segundos
   setInterval(() => {
     renderCases();
     if (getCloudUrl()) syncWithCloud(false);
