@@ -372,51 +372,327 @@ body.dark-mode .control-btn-circle {
   margin: 0;
 }
 
-/* PESTAÑAS (TABS) SICS */
-.sics-nav-tabs {
+/* =========================================================
+   PESTAÑAS (TABS) OFICIALES ESTILO SICS (IMÁGENES 3, 4, 5)
+   ========================================================= */
+.sics-tabs-header-wrapper {
+  max-width: 1550px;
+  margin: 0 auto 16px auto;
+  padding: 0 4%;
+}
+
+.sics-tabs-header {
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--dash-border);
-  padding-bottom: 10px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
   overflow-x: auto;
+}
+
+body.light-mode .sics-tabs-header {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
 }
 
 .sics-tab-btn {
   background: transparent;
-  border: none;
-  color: var(--dash-text-muted);
+  border: 1px solid transparent;
+  color: #94a3b8;
   font-size: 13.5px;
   font-weight: 700;
-  padding: 9px 18px;
-  border-radius: 8px;
+  padding: 8px 18px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: 0.3s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   white-space: nowrap;
 }
 
+body.light-mode .sics-tab-btn {
+  color: #64748b;
+}
+
 .sics-tab-btn:hover {
-  color: var(--dash-text-main);
-  background: var(--dash-card-bg);
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .sics-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .sics-tab-btn.active {
-  color: white;
-  background: var(--corp-active);
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  color: #ffffff !important;
+  background: #2563eb !important; /* Azul Rey SICS */
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.45) !important;
 }
 
-.tab-count {
-  min-width: 20px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 11px;
-  text-align: center;
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 11.5px;
+  font-weight: 800;
   font-family: var(--font-mono);
+  color: inherit;
+}
+
+.sics-tab-btn.active .tab-badge {
+  background: rgba(0, 0, 0, 0.25);
+  color: #ffffff;
+}
+
+/* BANNER PREVENTIVO DE ALARMA REPROGRAMADA (15 MIN ANTES) */
+.advance-alarm-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  animation: pulseGlow 2s infinite ease-in-out;
+  color: #f8fafc;
+  font-size: 0.92rem;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+}
+
+.btn-close-mini {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.btn-close-mini:hover { color: #fff; }
+
+/* MODAL FIEL A SICS (IMÁGENES 3, 4, 5) */
+.sics-modal-window {
+  max-width: 920px !important;
+  width: 95% !important;
+  background: #0f172a !important; /* Azul profundo SICS */
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(14, 165, 233, 0.15) !important;
+}
+
+.sics-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+}
+
+.sics-form-grid .form-field label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.sics-modal-window input.filter-input,
+.sics-modal-window select.filter-select,
+.sics-modal-window textarea.filter-input {
+  background: #090e1a !important;
+  border: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+  font-size: 13.5px !important;
+  padding: 10px 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.sics-modal-window input.filter-input:focus,
+.sics-modal-window select.filter-select:focus,
+.sics-modal-window textarea.filter-input:focus {
+  border-color: #38bdf8 !important; /* Cyan eléctrico SICS */
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+  outline: none !important;
+}
+
+/* MODAL DE ALARMA INSISTENTE (CRÍTICO) */
+.alarm-modal-backdrop {
+  z-index: 100000 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.alarm-modal-window {
+  max-width: 650px !important;
+  background: #090e17 !important;
+  border: 2px solid #ef4444 !important;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.5), 0 20px 50px rgba(0,0,0,0.8) !important;
+  border-radius: 18px !important;
+  animation: shakeAlarm 1.2s infinite ease-in-out;
+}
+
+@keyframes shakeAlarm {
+  0%, 100% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+  50% { border-color: #f59e0b; box-shadow: 0 0 50px rgba(245, 158, 11, 0.6); }
+}
+
+.alarm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.alarm-pulsing-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  animation: pulseBell 1s infinite alternate;
+}
+
+@keyframes pulseBell {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); box-shadow: 0 0 20px #ef4444; }
+}
+
+.alarm-modal-body {
+  padding: 22px 24px;
+}
+
+.alarm-case-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.alarm-case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.alarm-overdue-tag {
+  background: #ef4444;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  animation: flashTag 1s infinite alternate;
+}
+
+@keyframes flashTag {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.alarm-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.btn-alarm-action {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-alarm-attend {
+  background: #2563eb;
+  color: #fff;
+}
+.btn-alarm-attend:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-alarm-snooze {
+  background: #f59e0b;
+  color: #000;
+}
+.btn-alarm-snooze:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-alarm-mute {
+  background: #334155;
+  color: #cbd5e1;
+}
+.btn-alarm-mute:hover {
+  background: #475569;
+  color: #fff;
+}
+
+/* BADGES PARA CASOS CON ALARMA / REPROGRAMADOS EN LAS TARJETAS */
+.badge-reprog-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: pulseGlow 1.5s infinite alternate;
+}
+
+.badge-reprog-due {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  font-size: 11.5px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: flashTag 0.8s infinite alternate;
 }
 
 /* =========================================================
