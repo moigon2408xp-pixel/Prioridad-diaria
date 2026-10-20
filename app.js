@@ -116,10 +116,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
+  const MY_ZONE_KEY = 'SICS_MI_ZONA_2026';
+  const SOUND_ONLY_MY_ZONE_KEY = 'SICS_SOUND_ONLY_MY_ZONE_2026';
+  const SILENCED_ALARMS_KEY = 'SICS_SILENCED_ALARMS_2026';
+
   let cases = loadCases();
   let currentTab = 'principal'; // 'principal' | 'cumplidas' | 'canceladas' | 'pausadas'
+  let currentScope = 'all'; // 'all' | 'my_zone'
+  let miZona = localStorage.getItem(MY_ZONE_KEY) || 'Zona 3-Z';
+  let soundOnlyMyZone = localStorage.getItem(SOUND_ONLY_MY_ZONE_KEY) !== 'false';
+  let silencedAlarms = loadSilencedAlarms();
   let activeAlarmCaseId = null;
-  let preAlertNotifiedIds = new Set();
+  let activeAlarmKey = null;
+  let preAlertNotifiedKeys = new Set();
+
+  function loadSilencedAlarms() {
+    try {
+      const data = localStorage.getItem(SILENCED_ALARMS_KEY);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Error cargando alarmas silenciadas:', e);
+    }
+    return {};
+  }
+
+  function saveSilencedAlarms() {
+    try {
+      localStorage.setItem(SILENCED_ALARMS_KEY, JSON.stringify(silencedAlarms));
+    } catch (e) {
+      console.error('Error guardando alarmas silenciadas:', e);
+    }
+  }
+
+  // Formateador limpio de 24h a 12h con AM/PM (Ej: "14:30" -> "02:30 PM", "09:30" -> "09:30 AM")
+  function formatTime12h(time24) {
+    if (!time24) return '02:00 PM';
+    const clean = String(time24).trim().substring(0, 5);
+    const parts = clean.split(':');
+    if (parts.length !== 2) return time24;
+    let h = parseInt(parts[0], 10);
+    const m = parts[1].padStart(2, '0');
+    if (isNaN(h)) return time24;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    const hStr = String(h).padStart(2, '0');
+    return `${hStr}:${m} ${ampm}`;
+  }
 
   function loadCases() {
     try {
@@ -150,6 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const countFiltrados = document.getElementById('countFiltrados');
   const tabSectionTitle = document.getElementById('tabSectionTitle');
 
+  // Selector de Mi Zona y Alcance
+  const selectMiZona = document.getElementById('selectMiZona');
+  const btnToggleSoundFilter = document.getElementById('btnToggleSoundFilter');
+  const iconSoundFilter = document.getElementById('iconSoundFilter');
+  const btnHeaderStopAlarm = document.getElementById('btnHeaderStopAlarm');
+  const btnScopeAll = document.getElementById('btnScopeAll');
+  const btnScopeMyZone = document.getElementById('btnScopeMyZone');
+  const scopeMyZoneLabel = document.getElementById('scopeMyZoneLabel');
+  const countAllScope = document.getElementById('countAllScope');
+  const countMyZoneScope = document.getElementById('countMyZoneScope');
+
   // Pestañas SICS
   const tabBtnPrincipal = document.getElementById('tabBtnPrincipal');
   const tabBtnCumplidas = document.getElementById('tabBtnCumplidas');
@@ -175,6 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseAdvanceBanner = document.getElementById('btnCloseAdvanceBanner');
   const modalAlarmOverlay = document.getElementById('modalAlarmOverlay');
   const alarmModalContent = document.getElementById('alarmModalContent');
+  const alarmModalZoneBadge = document.getElementById('alarmModalZoneBadge');
+  const alarmModalMainTitle = document.getElementById('alarmModalMainTitle');
+  const alarmModalSubTitle = document.getElementById('alarmModalSubTitle');
+  const btnAlarmStop = document.getElementById('btnAlarmStop');
   const btnAlarmAttend = document.getElementById('btnAlarmAttend');
   const btnAlarmSnooze = document.getElementById('btnAlarmSnooze');
   const btnAlarmMute = document.getElementById('btnAlarmMute');
@@ -185,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const soundIcon = document.getElementById('soundIcon');
   const btnTestSound = document.getElementById('btnTestSound');
 
-  // Modal Principal SICS
+  // Modal Principal SICS & Selector de Horarios
   const modalBackdrop = document.getElementById('modalCaseBackdrop');
   const btnNuevo = document.getElementById('btnNuevoEscalamiento');
   const btnCloseModal = document.getElementById('btnCloseModal');
@@ -197,6 +255,163 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeToggleBtn = document.getElementById('themeToggleBtn');
   const themeIcon = document.getElementById('themeIcon');
   const btnExportar = document.getElementById('btnExportar');
+
+  // Controles del Planificador de Horas
+  const caseHoraSelect = document.getElementById('caseHoraSelect');
+  const caseHoraReprogramada = document.getElementById('caseHoraReprogramada');
+  const btnDateToday = document.getElementById('btnDateToday');
+  const btnDateTomorrow = document.getElementById('btnDateTomorrow');
+
+  // Sincronizador de Selector de Horas de Oficina (8:00 AM - 5:00 PM)
+  function syncTimePicker(timeStr) {
+    if (!timeStr) timeStr = '14:00';
+    const cleanTime = String(timeStr).trim().substring(0, 5);
+    if (caseHoraReprogramada) {
+      caseHoraReprogramada.value = cleanTime;
+    }
+
+    let foundInSelect = false;
+    if (caseHoraSelect) {
+      for (let i = 0; i < caseHoraSelect.options.length; i++) {
+        if (caseHoraSelect.options[i].value === cleanTime) {
+          caseHoraSelect.selectedIndex = i;
+          foundInSelect = true;
+          break;
+        }
+      }
+      if (!foundInSelect) {
+        caseHoraSelect.value = 'custom';
+        if (caseHoraReprogramada) caseHoraReprogramada.style.display = 'inline-block';
+      } else {
+        if (caseHoraReprogramada) caseHoraReprogramada.style.display = 'none';
+      }
+    }
+
+    // Actualizar estado activo en los botones de acceso rápido (chips)
+    document.querySelectorAll('.btn-time-chip').forEach(chip => {
+      if (chip.getAttribute('data-time') === cleanTime) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
+  }
+
+  if (caseHoraSelect) {
+    caseHoraSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') {
+        if (caseHoraReprogramada) {
+          caseHoraReprogramada.style.display = 'inline-block';
+          caseHoraReprogramada.focus();
+        }
+      } else {
+        if (caseHoraReprogramada) {
+          caseHoraReprogramada.style.display = 'none';
+          caseHoraReprogramada.value = val;
+        }
+        syncTimePicker(val);
+      }
+    });
+  }
+
+  if (caseHoraReprogramada) {
+    caseHoraReprogramada.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val) syncTimePicker(val);
+    });
+  }
+
+  document.querySelectorAll('.btn-time-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const timeVal = chip.getAttribute('data-time');
+      if (timeVal) syncTimePicker(timeVal);
+    });
+  });
+
+  if (btnDateToday) {
+    btnDateToday.addEventListener('click', () => {
+      const fechaInput = document.getElementById('caseFechaReprogramada');
+      if (fechaInput) fechaInput.value = new Date().toISOString().split('T')[0];
+    });
+  }
+
+  if (btnDateTomorrow) {
+    btnDateTomorrow.addEventListener('click', () => {
+      const fechaInput = document.getElementById('caseFechaReprogramada');
+      if (fechaInput) {
+        const tomorrow = new Date(Date.now() + 86400000);
+        fechaInput.value = tomorrow.toISOString().split('T')[0];
+      }
+    });
+  }
+
+  // Configuración y eventos de Mi Zona y Alcance
+  if (selectMiZona) {
+    selectMiZona.value = miZona;
+    selectMiZona.addEventListener('change', (e) => {
+      miZona = e.target.value;
+      localStorage.setItem(MY_ZONE_KEY, miZona);
+      renderCases();
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: `Zona activa: ${miZona}`,
+        showConfirmButton: false,
+        timer: 1600
+      });
+    });
+  }
+
+  function updateSoundFilterUI() {
+    if (iconSoundFilter) {
+      iconSoundFilter.className = soundOnlyMyZone ? 'fas fa-user-shield' : 'fas fa-globe-americas';
+      iconSoundFilter.style.color = soundOnlyMyZone ? '#38bdf8' : '#94a3b8';
+    }
+    if (btnToggleSoundFilter) {
+      btnToggleSoundFilter.classList.toggle('active', soundOnlyMyZone);
+      btnToggleSoundFilter.title = soundOnlyMyZone
+        ? 'Alarma Sonora: Exclusiva para Mi Zona (Ignora alertas de compañeros)'
+        : 'Alarma Sonora: Todas las Zonas (Suena para cualquier compañero)';
+    }
+  }
+  updateSoundFilterUI();
+
+  if (btnToggleSoundFilter) {
+    btnToggleSoundFilter.addEventListener('click', () => {
+      soundOnlyMyZone = !soundOnlyMyZone;
+      localStorage.setItem(SOUND_ONLY_MY_ZONE_KEY, soundOnlyMyZone);
+      updateSoundFilterUI();
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: soundOnlyMyZone ? 'Sonido solo para Mi Zona' : 'Sonido para Todas las Zonas',
+        text: soundOnlyMyZone ? `Solo sonará cuando un caso de ${miZona} alcance la hora.` : 'Sonará para los casos de todos los compañeros.',
+        showConfirmButton: false,
+        timer: 2000
+      });
+    });
+  }
+
+  if (btnScopeAll) {
+    btnScopeAll.addEventListener('click', () => {
+      currentScope = 'all';
+      btnScopeAll.classList.add('active');
+      if (btnScopeMyZone) btnScopeMyZone.classList.remove('active');
+      renderCases();
+    });
+  }
+
+  if (btnScopeMyZone) {
+    btnScopeMyZone.addEventListener('click', () => {
+      currentScope = 'my_zone';
+      btnScopeMyZone.classList.add('active');
+      if (btnScopeAll) btnScopeAll.classList.remove('active');
+      renderCases();
+    });
+  }
 
   // Nube Sheets
   const btnSyncCloud = document.getElementById('btnSyncCloud');
@@ -300,6 +515,42 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(persistentAlarmTimer);
       persistentAlarmTimer = null;
     }
+    if (btnHeaderStopAlarm) {
+      btnHeaderStopAlarm.style.display = 'none';
+    }
+  }
+
+  // Detener y silenciar permanentemente la alarma para este caso y fecha/hora
+  function dismissAlarm(caseId, key, actionType = 'silence') {
+    stopPersistentAlarm();
+    if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+    if (btnHeaderStopAlarm) btnHeaderStopAlarm.style.display = 'none';
+
+    if (key) {
+      silencedAlarms[key] = {
+        silencedAt: Date.now(),
+        caseId: caseId,
+        action: actionType
+      };
+      saveSilencedAlarms();
+    }
+
+    const c = cases.find(item => item.id === caseId);
+    if (c) {
+      c.alarma_detenida = true;
+      saveCases();
+    }
+    renderCases();
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: '✓ Alarma detenida y silenciada',
+      text: c ? `Orden #${c.orden} silenciada correctamente.` : '',
+      showConfirmButton: false,
+      timer: 1800
+    });
   }
 
   if (btnSoundToggle) {
@@ -325,11 +576,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btnTestSound.addEventListener('click', () => {
       getAudioContext();
       startPersistentAlarm();
+      if (btnHeaderStopAlarm) btnHeaderStopAlarm.style.display = 'inline-flex';
       Swal.fire({
         title: '🔔 Probando Alarma Insistente',
-        text: 'Sonará de forma repetitiva hasta que la detengas.',
+        text: 'Sonará de forma repetitiva hasta que presiones Detener.',
         icon: 'warning',
-        confirmButtonText: 'Detener Alarma',
+        confirmButtonText: '🛑 Detener Alarma',
         confirmButtonColor: '#ef4444'
       }).then(() => {
         stopPersistentAlarm();
@@ -374,23 +626,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getScheduledTimestamp(caseObj) {
     const f = caseObj.fecha_reprogramada || caseObj.fecha_diferido;
-    const h = caseObj.hora_reprogramada || caseObj.hora_diferido || '14:00';
-    if (!f) return null;
+    const h = caseObj.hora_reprogramada || caseObj.hora_diferido;
+    if (!f && !h) return null;
 
-    // Normalizar formato de fecha si viene DD/MM/YYYY
+    // Si tiene hora pero no fecha, asumir automáticamente la fecha de hoy
     let yyyy_mm_dd = f;
-    if (f.includes('/')) {
-      const parts = f.split('/');
-      if (parts.length === 3) {
-        if (parts[2].length === 4) {
-          yyyy_mm_dd = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
+    if (!yyyy_mm_dd) {
+      yyyy_mm_dd = new Date().toISOString().split('T')[0];
+    } else if (yyyy_mm_dd.includes('/')) {
+      const parts = yyyy_mm_dd.split('/');
+      if (parts.length === 3 && parts[2].length === 4) {
+        yyyy_mm_dd = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
     }
 
-    const isoStr = `${yyyy_mm_dd}T${h.padStart(5, '0')}:00`;
+    const cleanHour = (h || '14:00').substring(0, 5);
+    const isoStr = `${yyyy_mm_dd}T${cleanHour.padStart(5, '0')}:00`;
     const ts = new Date(isoStr).getTime();
-    return isNaN(ts) ? null : ts;
+    if (isNaN(ts)) return null;
+
+    return {
+      timestamp: ts,
+      fechaIso: yyyy_mm_dd,
+      horaStr: cleanHour
+    };
   }
 
   // 7. RENDERIZAR TARJETAS Y ACTUALIZAR CONTADORES SICS
@@ -427,27 +686,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabBadgeCanceladas) tabBadgeCanceladas.textContent = countCanceladas;
     if (tabBadgePausadas) tabBadgePausadas.textContent = countPausadas;
 
-    // Filtrar según la pestaña activa
+    // Filtrar casos según la pestaña activa
     const filteredByTab = cases.filter(c => {
       const st = (c.estado || 'Pendiente').toLowerCase();
       const mot = (c.motivo || '').toLowerCase();
+      if (currentTab === 'cumplidas') return st === 'realizado' || st === 'resuelto';
+      if (currentTab === 'canceladas') return st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado';
+      if (currentTab === 'pausadas') return st === 'pausa' || st === 'diferido' || mot.includes('reprogram');
+      return st !== 'realizado' && st !== 'resuelto' && st !== 'cancelado' && st !== 'cancelado/espera' && st !== 'rebotado';
+    });
 
-      if (currentTab === 'cumplidas') {
-        return st === 'realizado' || st === 'resuelto';
-      } else if (currentTab === 'canceladas') {
-        return st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado';
-      } else if (currentTab === 'pausadas') {
-        return st === 'pausa' || st === 'diferido' || mot.includes('reprogram');
-      } else {
-        // 'principal': casos que no están cumplidos ni cancelados ni pausados
-        return st !== 'realizado' && st !== 'resuelto' &&
-               st !== 'cancelado' && st !== 'cancelado/espera' && st !== 'rebotado' &&
-               st !== 'pausa' && st !== 'diferido' && !mot.includes('reprogram');
+    // Contadores de alcance (Todas las Zonas vs Mi Zona)
+    const countAllInScope = filteredByTab.length;
+    const countMyZoneInScope = filteredByTab.filter(c => miZona === 'TODAS' || c.zona === miZona).length;
+    if (countAllScope) countAllScope.textContent = countAllInScope;
+    if (countMyZoneScope) countMyZoneScope.textContent = countMyZoneInScope;
+    if (scopeMyZoneLabel) scopeMyZoneLabel.textContent = (miZona === 'TODAS') ? 'Todas las Zonas' : miZona;
+
+    // Filtrar por alcance activo (Todas o Solo Mi Zona)
+    const scopeFiltered = filteredByTab.filter(c => {
+      if (currentScope === 'my_zone') {
+        return miZona === 'TODAS' || c.zona === miZona;
       }
+      return true;
     });
 
     // Filtros secundarios (búsqueda, supervisor, zona, solicitante)
-    const filtered = filteredByTab.filter(c => {
+    const filtered = scopeFiltered.filter(c => {
       const matchQ = !q || (
         (c.orden && c.orden.toLowerCase().includes(q)) ||
         (c.cliente && c.cliente.toLowerCase().includes(q)) ||
@@ -487,38 +752,46 @@ document.addEventListener('DOMContentLoaded', () => {
       const badgePrioClass = c.prioridad === 'CRÍTICA' ? 'prio-critica' : (c.prioridad === 'ALTA' ? 'prio-alta' : 'prio-media');
       const timeStr = formatElapsedTime(c.timestamp);
 
-      // Evaluación de hora reprogramada
-      const scheduledMs = getScheduledTimestamp(c);
+      // Distinción visual Mi Zona vs Compañeros
+      const isMyZone = (c.zona === miZona);
+      const myZoneCardClass = isMyZone ? 'case-card-my-zone' : '';
+      const zoneBadgeHtml = isMyZone
+        ? `<span class="badge-my-zone" title="¡Este caso pertenece a tu zona asignada!"><i class="fas fa-star"></i> MI ZONA (${c.zona})</span>`
+        : `<span class="badge-other-zone" title="Caso de compañero en otra zona"><i class="fas fa-users"></i> ${c.zona || 'Compañero'} (${c.supervisor || 'Mtto'})</span>`;
+
+      // Evaluación precisa de hora reprogramada
+      const scheduledInfo = getScheduledTimestamp(c);
       let reprogBadgeHtml = '';
-      if (scheduledMs && !isResuelto) {
-        const diffMins = Math.round((scheduledMs - Date.now()) / 60000);
-        const horaStr = c.hora_reprogramada || c.hora_diferido || '14:00';
+      if (scheduledInfo && !isResuelto) {
+        const diffMins = Math.round((scheduledInfo.timestamp - Date.now()) / 60000);
+        const hora12 = formatTime12h(scheduledInfo.horaStr);
         if (diffMins <= 0) {
           reprogBadgeHtml = `
-            <span class="badge-reprog-due" title="¡HORA VENCIDA! Caso debía ser atendido a las ${horaStr}">
-              <i class="fas fa-bell"></i> ¡Vencido! (${horaStr})
+            <span class="badge-reprog-due" title="¡HORA VENCIDA! Caso debía ser atendido a las ${hora12}">
+              <i class="fas fa-bell"></i> ¡Vencido! (${hora12})
             </span>
           `;
         } else if (diffMins <= 15) {
           reprogBadgeHtml = `
-            <span class="badge-reprog-warning" title="Próximo a cumplirse en ${diffMins} minutos">
-              <i class="far fa-clock"></i> En ${diffMins}m (${horaStr})
+            <span class="badge-reprog-warning ${isMyZone ? 'badge-my-zone-warning' : ''}" title="Próximo a cumplirse en ${diffMins} minutos (${hora12})">
+              <i class="far fa-clock"></i> En ${diffMins}m (${hora12})
             </span>
           `;
         } else {
           reprogBadgeHtml = `
-            <span style="font-size:11px; color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.1); padding:2px 8px; border-radius:6px;">
-              <i class="far fa-calendar-check"></i> Reprog: ${horaStr}
+            <span style="font-size:11px; color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.1); padding:2px 8px; border-radius:6px;" title="Reprogramado">
+              <i class="far fa-calendar-check"></i> Reprog: ${hora12}
             </span>
           `;
         }
       }
 
       return `
-        <div class="case-card ${isResuelto ? 'case-resolved' : ''}">
+        <div class="case-card ${isResuelto ? 'case-resolved' : ''} ${myZoneCardClass}">
           <div class="case-card-header">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span class="badge-order">#${c.orden}</span>
+              ${zoneBadgeHtml}
               ${reprogBadgeHtml}
             </div>
             <div class="case-time" title="Tiempo de registro">
@@ -562,7 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           ${(c.fecha_reprogramada || c.hora_reprogramada) ? `
             <div style="margin-top:8px; padding:6px 10px; background:rgba(56,189,248,0.08); border-left:3px solid #38bdf8; border-radius:4px; font-size:12px;">
-              <i class="far fa-clock" style="color:#38bdf8;"></i> <strong>Reprogramado para:</strong> ${c.fecha_reprogramada || 'Hoy'} a las <strong>${c.hora_reprogramada || '14:00'}</strong>
+              <i class="far fa-clock" style="color:#38bdf8;"></i> <strong>Reprogramado para:</strong> ${c.fecha_reprogramada || 'Hoy'} a las <strong>${formatTime12h(c.hora_reprogramada || '14:00')}</strong>
             </div>
           ` : ''}
 
@@ -603,35 +876,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. BUCLE DE VIGILANCIA DE ALARMAS REPROGRAMADAS (CADA 5 SEGUNDOS)
   function checkReprogrammedAlarms() {
     const now = Date.now();
+    const todayIso = new Date().toISOString().split('T')[0];
     let nextScheduledDiff = Infinity;
     let nextScheduledCase = null;
     let triggeredAlarmCase = null;
+    let triggeredAlarmKey = null;
+    let triggeredIsMyZone = false;
 
     cases.forEach(c => {
       const isDone = c.estado === 'Realizado' || c.estado === 'Resuelto' || c.estado === 'Cancelado';
       if (isDone) return;
 
-      const scheduledMs = getScheduledTimestamp(c);
-      if (!scheduledMs) return;
+      const scheduledInfo = getScheduledTimestamp(c);
+      if (!scheduledInfo) return;
 
-      const diffMs = scheduledMs - now;
+      // Evaluar únicamente casos programados para la fecha de HOY
+      if (scheduledInfo.fechaIso !== todayIso) return;
+
+      const diffMs = scheduledInfo.timestamp - now;
       const diffMins = Math.round(diffMs / 60000);
+      const isMyZone = (miZona === 'TODAS' || c.zona === miZona);
 
-      // Encontrar el caso más próximo en el futuro
+      // Encontrar el caso más próximo en el futuro para el indicador del Header
       if (diffMs > 0 && diffMs < nextScheduledDiff) {
-        nextScheduledDiff = diffMs;
-        nextScheduledCase = c;
+        if (isMyZone || !nextScheduledCase) {
+          nextScheduledDiff = diffMs;
+          nextScheduledCase = c;
+        }
       }
 
       // 1. AVISO PREVENTIVO (15 MINUTOS ANTES)
       if (diffMins <= 15 && diffMins > 0) {
-        if (!preAlertNotifiedIds.has(c.id)) {
-          preAlertNotifiedIds.add(c.id);
-          const horaStr = c.hora_reprogramada || c.hora_diferido || '14:00';
+        const preKey = `pre_${c.id}_${scheduledInfo.fechaIso}_${scheduledInfo.horaStr}`;
+        if (!preAlertNotifiedKeys.has(preKey)) {
+          preAlertNotifiedKeys.add(preKey);
+          const hora12 = formatTime12h(scheduledInfo.horaStr);
 
           if (advanceAlarmBanner && advanceAlarmBannerText) {
+            const zoneTag = isMyZone
+              ? `<span class="badge-my-zone" style="margin-right:6px;"><i class="fas fa-star"></i> TU ZONA (${c.zona})</span>`
+              : `<span class="badge-other-zone" style="margin-right:6px;"><i class="fas fa-users"></i> COMPAÑERO (${c.zona})</span>`;
+
             advanceAlarmBannerText.innerHTML = `
-              <strong>⏰ AVISO PREVENTIVO:</strong> El caso <strong>#${c.orden}</strong> (${c.cliente}) está reprogramado para las <strong>${horaStr}</strong> (faltan ${diffMins} min).
+              ${zoneTag} <strong>⏰ AVISO PREVENTIVO (Faltan ${diffMins} min):</strong> El caso <strong>#${c.orden}</strong> (${c.cliente}) está reprogramado para las <strong>${hora12}</strong>. ¡Ir coordinando movimientos de cuadrilla!
             `;
             advanceAlarmBanner.style.display = 'flex';
             if (btnAttendAdvanceAlarm) {
@@ -639,14 +926,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
 
-          playAlertChime();
+          // Sonar pre-aviso si corresponde a mi zona o si tengo todas las zonas activas
+          if (isMyZone || !soundOnlyMyZone) {
+            playAlertChime();
+          }
         }
       }
 
-      // 2. ALARMA CRÍTICA AL ALCANZAR LA HORA O ESTAR VENCIDO
-      if (diffMins <= 0) {
+      // 2. ALARMA CRÍTICA AL ALCANZAR LA HORA (Hora cumplida o vencida dentro de las últimas 3 horas)
+      if (diffMins <= 0 && diffMins >= -180) {
+        const alarmKey = `alarm_${c.id}_${scheduledInfo.fechaIso}_${scheduledInfo.horaStr}`;
+
+        // VERIFICAR SI YA FUE DETENIDA O SILENCIADA POR EL USUARIO
+        if (silencedAlarms[alarmKey]) {
+          return; // Ya se detuvo. NO volver a sonar ni molestar
+        }
+
+        // Si el usuario activó "Sonar alarmas solo para Mi Zona" y este caso es de otra zona, no sonar
+        if (soundOnlyMyZone && !isMyZone) {
+          return;
+        }
+
         if (!triggeredAlarmCase) {
           triggeredAlarmCase = c;
+          triggeredAlarmKey = alarmKey;
+          triggeredIsMyZone = isMyZone;
         }
       }
     });
@@ -654,9 +958,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Actualizar indicador en header
     if (kpiNextAlarmTime) {
       if (nextScheduledCase) {
-        const minsLeft = Math.round(nextScheduledDiff / 60000);
-        const hora = nextScheduledCase.hora_reprogramada || nextScheduledCase.hora_diferido || '14:00';
-        kpiNextAlarmTime.textContent = `${hora} (#${nextScheduledCase.orden} en ${minsLeft}m)`;
+        const info = getScheduledTimestamp(nextScheduledCase);
+        const minsLeft = Math.round((info.timestamp - now) / 60000);
+        const hora12 = formatTime12h(info.horaStr);
+        kpiNextAlarmTime.textContent = `${hora12} (#${nextScheduledCase.orden} en ${minsLeft}m)`;
         if (headerNextAlarmIcon) headerNextAlarmIcon.style.color = '#38bdf8';
       } else {
         kpiNextAlarmTime.textContent = 'Sin casos';
@@ -667,32 +972,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // DISPARAR ALARMA VISUAL & SONORA INSISTENTE
     if (triggeredAlarmCase) {
       activeAlarmCaseId = triggeredAlarmCase.id;
-      const horaStr = triggeredAlarmCase.hora_reprogramada || triggeredAlarmCase.hora_diferido || '14:00';
+      activeAlarmKey = triggeredAlarmKey;
+      const scheduledInfo = getScheduledTimestamp(triggeredAlarmCase);
+      const hora12 = formatTime12h(scheduledInfo ? scheduledInfo.horaStr : '14:00');
+
+      if (alarmModalZoneBadge) {
+        alarmModalZoneBadge.innerHTML = triggeredIsMyZone
+          ? `<span class="badge-my-zone" style="font-size:0.85rem; padding:4px 10px;"><i class="fas fa-star"></i> MI ZONA DE ATENCIÓN DIRECTA (${triggeredAlarmCase.zona})</span>`
+          : `<span class="badge-other-zone" style="font-size:0.85rem; padding:4px 10px;"><i class="fas fa-users"></i> ALERTA DE COMPAÑERO (${triggeredAlarmCase.zona} — Supervisor: ${triggeredAlarmCase.supervisor})</span>`;
+      }
+
+      if (alarmModalMainTitle) {
+        alarmModalMainTitle.textContent = triggeredIsMyZone
+          ? '🚨 ¡ALARMA: CASO DE TU ZONA EN HORA PROGRAMADA!'
+          : '⏰ ALERTA: CASO DE COMPAÑERO EN HORA PROGRAMADA';
+      }
+
+      if (alarmModalSubTitle) {
+        alarmModalSubTitle.textContent = triggeredIsMyZone
+          ? 'Atención inmediata requerida para tu zona. Coordina movimientos y técnicos ahora.'
+          : `Caso asignado a tu compañero en ${triggeredAlarmCase.zona} (${triggeredAlarmCase.supervisor}).`;
+      }
 
       if (alarmModalContent) {
         alarmModalContent.innerHTML = `
           <div class="alarm-case-card">
             <div class="alarm-case-header">
-              <span style="font-size:1.1rem; font-weight:900; color:#38bdf8;">Orden #${triggeredAlarmCase.orden}</span>
-              <span class="alarm-overdue-tag">¡HORA PROGRAMADA: ${horaStr}!</span>
+              <span style="font-size:1.15rem; font-weight:900; color:#38bdf8;">Orden #${triggeredAlarmCase.orden}</span>
+              <span class="alarm-overdue-tag">¡HORA PROGRAMADA: ${hora12}!</span>
             </div>
-            <div style="font-size:1.05rem; font-weight:800; color:#fff; margin-bottom:6px;">
+            <div style="font-size:1.1rem; font-weight:800; color:#fff; margin-bottom:6px;">
               ${triggeredAlarmCase.cliente}
             </div>
             <div style="font-size:0.88rem; color:#94a3b8; margin-bottom:8px;">
-              <strong>Zona:</strong> ${triggeredAlarmCase.zona || 'Zona 3-Z'} &bull; <strong>MDT:</strong> ${triggeredAlarmCase.mdt || 'N/A'} &bull; <strong>Supervisor:</strong> ${triggeredAlarmCase.supervisor}
+              <strong>Zona:</strong> ${triggeredAlarmCase.zona || 'Zona 3-Z'} &bull; <strong>MDT:</strong> ${triggeredAlarmCase.mdt || 'N/A'} &bull; <strong>Cuadrilla:</strong> ${triggeredAlarmCase.cuadrilla || 'Por asignar'}
             </div>
-            <div style="font-size:0.85rem; color:#f59e0b; background:rgba(245,158,11,0.1); padding:8px 12px; border-radius:6px;">
+            <div style="font-size:0.88rem; color:#f59e0b; background:rgba(245,158,11,0.12); padding:10px 14px; border-radius:8px; border:1px solid rgba(245,158,11,0.25);">
               <i class="fas fa-exclamation-triangle"></i> <strong>Motivo de Operación:</strong> ${triggeredAlarmCase.motivo || 'Visita reprogramada'}
             </div>
           </div>
         `;
       }
 
-      if (modalAlarmOverlay) {
-        modalAlarmOverlay.style.display = 'flex';
-      }
-
+      if (btnHeaderStopAlarm) btnHeaderStopAlarm.style.display = 'inline-flex';
+      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'flex';
       startPersistentAlarm();
     }
   }
@@ -705,16 +1028,64 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ACCIONES DEL MODAL DE ALARMA
+  if (btnAlarmStop) {
+    btnAlarmStop.addEventListener('click', () => {
+      if (activeAlarmCaseId && activeAlarmKey) {
+        dismissAlarm(activeAlarmCaseId, activeAlarmKey, 'stop');
+      } else {
+        stopPersistentAlarm();
+        if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      }
+    });
+  }
+
+  if (btnAlarmMute) {
+    btnAlarmMute.addEventListener('click', () => {
+      if (activeAlarmCaseId && activeAlarmKey) {
+        dismissAlarm(activeAlarmCaseId, activeAlarmKey, 'mute');
+      } else {
+        stopPersistentAlarm();
+        if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      }
+    });
+  }
+
+  if (btnDismissAlarmModal) {
+    btnDismissAlarmModal.addEventListener('click', () => {
+      if (activeAlarmCaseId && activeAlarmKey) {
+        dismissAlarm(activeAlarmCaseId, activeAlarmKey, 'close');
+      } else {
+        stopPersistentAlarm();
+        if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      }
+    });
+  }
+
+  if (btnHeaderStopAlarm) {
+    btnHeaderStopAlarm.addEventListener('click', () => {
+      if (activeAlarmCaseId && activeAlarmKey) {
+        dismissAlarm(activeAlarmCaseId, activeAlarmKey, 'header_stop');
+      } else {
+        stopPersistentAlarm();
+      }
+    });
+  }
+
   if (btnAlarmAttend) {
     btnAlarmAttend.addEventListener('click', () => {
-      stopPersistentAlarm();
-      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      if (activeAlarmCaseId && activeAlarmKey) {
+        dismissAlarm(activeAlarmCaseId, activeAlarmKey, 'attend');
+      } else {
+        stopPersistentAlarm();
+        if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
+      }
       if (activeAlarmCaseId) {
         const found = cases.find(c => c.id === activeAlarmCaseId);
         if (found) {
           found.estado = 'En ejecucion';
           saveCases();
           renderCases();
+          pushCaseToCloud(found);
           openModal(found);
         }
       }
@@ -734,6 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const mm = String(newTarget.getMinutes()).padStart(2, '0');
           found.hora_reprogramada = `${hh}:${mm}`;
           found.fecha_reprogramada = newTarget.toISOString().split('T')[0];
+          found.alarma_detenida = false;
           saveCases();
           renderCases();
           pushCaseToCloud(found);
@@ -742,26 +1114,12 @@ document.addEventListener('DOMContentLoaded', () => {
             toast: true,
             position: 'top-end',
             icon: 'info',
-            title: `Caso #${found.orden} pospuesto 15 min (para las ${hh}:${mm})`,
+            title: `Caso #${found.orden} pospuesto 15 min (para las ${formatTime12h(found.hora_reprogramada)})`,
             showConfirmButton: false,
             timer: 2500
           });
         }
       }
-    });
-  }
-
-  if (btnAlarmMute) {
-    btnAlarmMute.addEventListener('click', () => {
-      stopPersistentAlarm();
-      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
-    });
-  }
-
-  if (btnDismissAlarmModal) {
-    btnDismissAlarmModal.addEventListener('click', () => {
-      stopPersistentAlarm();
-      if (modalAlarmOverlay) modalAlarmOverlay.style.display = 'none';
     });
   }
 
@@ -967,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('caseSolicitadoPor')) document.getElementById('caseSolicitadoPor').value = detectedSolicitadoPor;
     if (document.getElementById('caseFechaRegistro')) document.getElementById('caseFechaRegistro').value = detectedFechaRegistro;
     if (detectedFechaReprogramada) document.getElementById('caseFechaReprogramada').value = detectedFechaReprogramada;
-    if (detectedHoraReprogramada) document.getElementById('caseHoraReprogramada').value = detectedHoraReprogramada;
+    syncTimePicker(detectedHoraReprogramada || '14:00');
 
     setSelectValue('caseZona', detectedZona);
     if (document.getElementById('caseSupervisor')) document.getElementById('caseSupervisor').value = detectedSupervisor;
@@ -1104,7 +1462,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('caseCedula').value = caseData.cedula || '';
       document.getElementById('caseCliente').value = caseData.cliente || '';
       document.getElementById('caseFechaReprogramada').value = caseData.fecha_reprogramada || caseData.fecha_diferido || '';
-      document.getElementById('caseHoraReprogramada').value = caseData.hora_reprogramada || caseData.hora_diferido || '14:00';
+      const horaRep = caseData.hora_reprogramada || caseData.hora_diferido || '14:00';
+      syncTimePicker(horaRep);
       document.getElementById('caseGestionadoPor').value = caseData.gestionado_por || 'Sin gestionar';
       document.getElementById('caseMdt').value = caseData.mdt || '';
       document.getElementById('caseCuadrilla').value = caseData.cuadrilla || '';
@@ -1131,7 +1490,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('caseSupervisor').value = 'Roberto Carrillo';
       document.getElementById('caseSolicitadoPor').value = 'Jeremi Gil';
       document.getElementById('caseGestionadoPor').value = 'Sin gestionar';
-      document.getElementById('caseHoraReprogramada').value = '14:00';
+      document.getElementById('caseFechaReprogramada').value = new Date().toISOString().split('T')[0];
+      syncTimePicker('14:00');
       document.getElementById('caseMotivoSelect').value = 'Instalación por reconexión (cliente recuperado)';
     }
 
