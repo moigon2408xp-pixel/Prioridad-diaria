@@ -62,6 +62,29 @@
 
     <!-- Acciones Globales -->
     <div class="header-actions">
+      <!-- Botón Flotante para Detener Alarma Sonora Inmediatamente (Visible al sonar) -->
+      <button id="btnHeaderStopAlarm" class="btn-flash-stop-alarm" style="display:none;" title="¡Click aquí para detener y silenciar la alarma activa!">
+        <i class="fas fa-bell-slash"></i> <span>¡DETENER ALARMA!</span>
+      </button>
+
+      <!-- Selector de Mi Zona de Despacho -->
+      <div class="my-zone-badge-wrap" title="Configura tu zona para recibir alertas personalizadas y destacar tus casos">
+        <i class="fas fa-user-tag" style="color:#38bdf8;"></i>
+        <span class="my-zone-label">Mi Zona:</span>
+        <select id="selectMiZona" class="my-zone-select">
+          <option value="Zona 3-Z" selected>⭐ Zona 3-Z (Oeste)</option>
+          <option value="Zona 1-Z">Zona 1-Z (Norte)</option>
+          <option value="Zona 2-Z">Zona 2-Z (Sur)</option>
+          <option value="Zona 5-Z">Zona 5-Z (COL)</option>
+          <option value="Zona 6-Z">Zona 6-Z (Sub-Norte)</option>
+          <option value="Falcón">Zona Falcón</option>
+          <option value="TODAS">🌐 Todas las Zonas</option>
+        </select>
+        <button id="btnToggleSoundFilter" class="btn-zone-sound-filter" title="Sonar alarmas solo para Mi Zona (activado)">
+          <i class="fas fa-shield-alt" id="iconSoundFilter" style="color:#10b981;"></i>
+        </button>
+      </div>
+
       <!-- Botones de Audio -->
       <button id="btnSoundToggle" class="control-btn-circle" title="Sonido de Alarma: Activado">
         <i class="fas fa-volume-up" id="soundIcon" style="color:var(--c-info);"></i>
@@ -115,6 +138,16 @@
   <!-- PANEL DE FILTROS Y BÚSQUEDA -->
   <main class="main-content">
     <div class="filters-panel">
+      <!-- Selector Rápido de Alcance (Todas las Zonas vs. Mi Zona) -->
+      <div class="scope-toggle-group">
+        <button type="button" class="btn-scope-pill active" id="btnScopeAll" title="Ver casos de todos los compañeros y zonas">
+          <i class="fas fa-globe-americas"></i> Todas las Zonas (<span id="countAllScope">0</span>)
+        </button>
+        <button type="button" class="btn-scope-pill" id="btnScopeMyZone" title="Filtrar solo los casos de mi zona asignada">
+          <i class="fas fa-star" style="color:#fbbf24;"></i> <span id="scopeMyZoneLabel">Solo Mi Zona</span> (<span id="countMyZoneScope">0</span>)
+        </button>
+      </div>
+
       <div class="search-box">
         <i class="fas fa-search"></i>
         <input type="text" id="inputBuscar" placeholder="Buscar por Orden, Cliente, MDT, Solicitante, Cuadrilla..." class="filter-input">
@@ -337,15 +370,77 @@
             </select>
           </div>
 
-          <!-- Fila 5: Fecha & Hora Reprogramada (Alarma) & Teléfono -->
-          <div class="form-field">
-            <label>Fecha y Hora Reprogramada (Alarma)</label>
-            <div style="display:flex; gap:8px;">
-              <input type="date" id="caseFechaReprogramada" class="filter-input" style="flex:1;">
-              <input type="time" id="caseHoraReprogramada" class="filter-input" style="width:115px;" value="14:00" title="Hora de recordatorio sonoro y visual">
+          <!-- Fila 5: Selector Inteligente de Fecha & Horario de Oficina (Alarma) -->
+          <div class="form-field time-scheduler-card" style="grid-column: 1 / -1;">
+            <div class="scheduler-header">
+              <label><i class="far fa-calendar-alt" style="color:#38bdf8;"></i> Fecha y Hora Reprogramada (Alarma Sonora & Pre-aviso)</label>
+              <span class="office-hours-tag"><i class="fas fa-business-time"></i> Horario Oficina: 8:00 AM – 5:00 PM</span>
+            </div>
+
+            <div class="scheduler-controls-grid">
+              <!-- Fecha con atajos Hoy / Mañana -->
+              <div class="scheduler-date-col">
+                <span class="scheduler-sublabel"><i class="far fa-calendar"></i> Fecha:</span>
+                <div class="scheduler-date-input-wrap">
+                  <input type="date" id="caseFechaReprogramada" class="filter-input" title="Fecha para la alarma">
+                  <button type="button" class="btn-date-chip" id="btnDateToday" title="Asignar para hoy">Hoy</button>
+                  <button type="button" class="btn-date-chip" id="btnDateTomorrow" title="Asignar para mañana">Mañana</button>
+                </div>
+              </div>
+
+              <!-- Hora Limpia en Bloques de 30 min (Sin popup engorroso) -->
+              <div class="scheduler-time-col">
+                <span class="scheduler-sublabel"><i class="far fa-clock"></i> Hora Programada:</span>
+                <div class="scheduler-time-select-wrap">
+                  <select id="caseHoraSelect" class="filter-select scheduler-select" title="Selecciona la hora de la visita">
+                    <optgroup label="🌅 Turno Mañana (08:00 AM - 12:00 PM)">
+                      <option value="08:00">08:00 AM — Inicio Jornada</option>
+                      <option value="08:30">08:30 AM</option>
+                      <option value="09:00">09:00 AM</option>
+                      <option value="09:30">09:30 AM (Media Mañana)</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="10:30">10:30 AM</option>
+                      <option value="11:00">11:00 AM</option>
+                      <option value="11:30">11:30 AM (Cierre Mañana)</option>
+                      <option value="12:00">12:00 PM — Mediodía</option>
+                    </optgroup>
+                    <optgroup label="☀️ Turno Tarde (12:30 PM - 05:00 PM)">
+                      <option value="12:30">12:30 PM</option>
+                      <option value="13:00">01:00 PM</option>
+                      <option value="13:30">01:30 PM</option>
+                      <option value="14:00" selected>02:00 PM — Tarde Habitual</option>
+                      <option value="14:30">02:30 PM (Media Tarde)</option>
+                      <option value="15:00">03:00 PM</option>
+                      <option value="15:30">03:30 PM</option>
+                      <option value="16:00">04:00 PM</option>
+                      <option value="16:30">04:30 PM</option>
+                      <option value="17:00">05:00 PM — Fin Jornada</option>
+                    </optgroup>
+                    <optgroup label="⚙️ Hora Personalizada">
+                      <option value="custom">✏️ Otra hora exacta...</option>
+                    </optgroup>
+                  </select>
+
+                  <!-- Input exacto 24h (para compatibilidad total y modo personalizado) -->
+                  <input type="time" id="caseHoraReprogramada" class="filter-input custom-time-field" style="display:none; width:110px;" value="14:00">
+                </div>
+              </div>
+            </div>
+
+            <!-- Accesos Rápidos con 1 Solo Clic a Medias Horas y Horas Clave -->
+            <div class="scheduler-quick-chips">
+              <span class="chips-label">Medias Horas Frecuentes:</span>
+              <button type="button" class="btn-time-chip" data-time="09:30">09:30 AM</button>
+              <button type="button" class="btn-time-chip" data-time="11:30">11:30 AM</button>
+              <button type="button" class="btn-time-chip active" data-time="14:00">02:00 PM</button>
+              <button type="button" class="btn-time-chip" data-time="14:30">02:30 PM</button>
+              <button type="button" class="btn-time-chip" data-time="16:00">04:00 PM</button>
+              <button type="button" class="btn-time-chip" data-time="16:30">04:30 PM</button>
             </div>
           </div>
-          <div class="form-field">
+
+          <!-- Fila Teléfono de Contacto -->
+          <div class="form-field" style="grid-column: 1 / -1;">
             <label>Teléfono de Contacto</label>
             <input type="text" id="caseTelefono" class="filter-input" placeholder="Ej: 0412-7860689">
           </div>
@@ -373,10 +468,13 @@
       <div class="alarm-modal-header">
         <div class="alarm-pulsing-icon"><i class="fas fa-bell"></i></div>
         <div style="flex:1;">
-          <h3 style="color:#ef4444; font-size:1.3rem; margin:0; font-weight:900;">🚨 ¡ALARMA: CASO REPROGRAMADO EN TIEMPO!</h3>
-          <p style="color:#94a3b8; font-size:0.85rem; margin:3px 0 0 0;">Atención inmediata requerida para evitar retrasos en el despacho y cumplimiento</p>
+          <div id="alarmModalZoneBadge" style="margin-bottom:4px;">
+            <!-- Rendered dynamically: MI ZONA vs COMPAÑERO -->
+          </div>
+          <h3 style="color:#ef4444; font-size:1.3rem; margin:0; font-weight:900;" id="alarmModalMainTitle">🚨 ¡ALARMA: CASO REPROGRAMADO EN TIEMPO!</h3>
+          <p style="color:#94a3b8; font-size:0.85rem; margin:3px 0 0 0;" id="alarmModalSubTitle">Atención inmediata requerida para evitar retrasos en el despacho y cumplimiento</p>
         </div>
-        <button class="btn-close-modal" id="btnDismissAlarmModal" title="Cerrar modal">&times;</button>
+        <button class="btn-close-modal" id="btnDismissAlarmModal" title="Cerrar y detener alarma">&times;</button>
       </div>
 
       <div class="alarm-modal-body" id="alarmModalContent">
@@ -384,14 +482,17 @@
       </div>
 
       <div class="alarm-modal-footer">
+        <button type="button" class="btn-alarm-action btn-alarm-stop" id="btnAlarmStop" title="Detener sonido y silenciar esta alarma">
+          <i class="fas fa-stop-circle"></i> Detener Alarma
+        </button>
         <button type="button" class="btn-alarm-action btn-alarm-attend" id="btnAlarmAttend">
-          <i class="fas fa-bolt"></i> Atender Caso Ahora
+          <i class="fas fa-bolt"></i> Atender Caso
         </button>
         <button type="button" class="btn-alarm-action btn-alarm-snooze" id="btnAlarmSnooze">
-          <i class="fas fa-history"></i> Posponer 15 Minutos
+          <i class="fas fa-history"></i> Posponer 15m
         </button>
         <button type="button" class="btn-alarm-action btn-alarm-mute" id="btnAlarmMute">
-          <i class="fas fa-volume-mute"></i> Silenciar Alarma
+          <i class="fas fa-volume-mute"></i> Silenciar
         </button>
       </div>
     </div>
