@@ -119,16 +119,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const MY_ZONE_KEY = 'SICS_MI_ZONA_2026';
   const SOUND_ONLY_MY_ZONE_KEY = 'SICS_SOUND_ONLY_MY_ZONE_2026';
   const SILENCED_ALARMS_KEY = 'SICS_SILENCED_ALARMS_2026';
+  const PRE_ALERT_MINUTES_KEY = 'SICS_PRE_ALERT_MINS_2026';
 
   let cases = loadCases();
   let currentTab = 'principal'; // 'principal' | 'cumplidas' | 'canceladas' | 'pausadas'
   let currentScope = 'all'; // 'all' | 'my_zone'
   let miZona = localStorage.getItem(MY_ZONE_KEY) || 'Zona 3-Z';
   let soundOnlyMyZone = localStorage.getItem(SOUND_ONLY_MY_ZONE_KEY) !== 'false';
+  let preAlertMinutes = parseInt(localStorage.getItem(PRE_ALERT_MINUTES_KEY), 10) || 20;
   let silencedAlarms = loadSilencedAlarms();
   let activeAlarmCaseId = null;
   let activeAlarmKey = null;
   let preAlertNotifiedKeys = new Set();
+  let titleFlashTimer = null;
+  const originalDocumentTitle = document.title || 'SICS Mantenimiento & Control Operativo';
 
   function loadSilencedAlarms() {
     try {
@@ -148,20 +152,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Extrae de forma certera la hora HH:mm en formato 24h desde cualquier texto o fecha de Sheets (Ej: "Sat Dec 30 1899 14:30:00...")
+  function extractCleanTime24(timeInput) {
+    if (!timeInput) return '14:00';
+    const s = String(timeInput).trim();
+    const match = s.match(/\b([01]?\d|2[0-3]):([0-5]\d)/);
+    if (match) {
+      return `${match[1].padStart(2, '0')}:${match[2]}`;
+    }
+    return '14:00';
+  }
+
+  // Extrae fecha YYYY-MM-DD desde cualquier formato (ISO, latam DD/MM/YYYY, o fecha de Sheets)
+  function extractCleanDateIso(dateInput) {
+    if (!dateInput) return new Date().toISOString().split('T')[0];
+    const s = String(dateInput).trim();
+    const matchIso = s.match(/\b(20\d\d)[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])\b/);
+    if (matchIso) return `${matchIso[1]}-${matchIso[2]}-${matchIso[3]}`;
+    const matchLat = s.match(/\b(0[1-9]|[12]\d|3[01])[-/](0[1-9]|1[0-2])[-/](20\d\d)\b/);
+    if (matchLat) return `${matchLat[3]}-${matchLat[2]}-${matchLat[1]}`;
+    const d = new Date(s);
+    if (!isNaN(d.getTime()) && d.getFullYear() > 2000) {
+      return d.toISOString().split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  }
+
   // Formateador limpio de 24h a 12h con AM/PM (Ej: "14:30" -> "02:30 PM", "09:30" -> "09:30 AM")
-  function formatTime12h(time24) {
-    if (!time24) return '02:00 PM';
-    const clean = String(time24).trim().substring(0, 5);
-    const parts = clean.split(':');
-    if (parts.length !== 2) return time24;
+  function formatTime12h(timeInput) {
+    if (!timeInput) return '02:00 PM';
+    const cleanHour = extractCleanTime24(timeInput);
+    const parts = cleanHour.split(':');
     let h = parseInt(parts[0], 10);
-    const m = parts[1].padStart(2, '0');
-    if (isNaN(h)) return time24;
+    const m = parts[1];
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12;
     if (h === 0) h = 12;
     const hStr = String(h).padStart(2, '0');
     return `${hStr}:${m} ${ampm}`;
+  }
+
+  // Determina el estatus operativo real del caso para UI y filtrado
+  function getEffectiveStatus(c) {
+    if (!c) return 'Pendiente';
+    const st = String(c.estado || '').trim().toLowerCase();
+    const mot = String(c.motivo || '').toLowerCase();
+    if (st === 'realizado' || st === 'resuelto' || st === 'cumplida') return 'Realizado';
+    if (st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado') return 'Cancelado';
+    if (st === 'pausa' || st === 'diferido' || mot.includes('reprogram') || c.fecha_reprogramada || c.hora_reprogramada || c.fecha_diferido || c.hora_diferido) return 'Pausa';
+    if (st === 'en ejecucion' || st === 'en ruta' || st === 'en sitio') return 'En ejecucion';
+    return 'Pendiente';
+  }
+
+  // Renderiza el indicador de estatus visual con icono y detalles
+  function renderStatusIndicator(c) {
+    const eff = getEffectiveStatus(c);
+    if (eff === 'Pausa') {
+      const hStr = c.hora_reprogramada || c.hora_diferido;
+      const h12 = hStr ? ` (${formatTime12h(hStr)})` : '';
+      return `<span class="status-indicator status-pausa" title="Caso en Pausa / Reprogramado"><i class="fas fa-pause-circle"></i> En Pausa${h12}</span>`;
+    }
+    if (eff === 'Realizado') {
+      return `<span class="status-indicator status-realizado" title="Caso Cumplido / Realizado"><i class="fas fa-check-circle"></i> Cumplido</span>`;
+    }
+    if (eff === 'Cancelado') {
+      return `<span class="status-indicator status-cancelado" title="Caso Cancelado"><i class="fas fa-times-circle"></i> Cancelado</span>`;
+    }
+    if (eff === 'En ejecucion') {
+      return `<span class="status-indicator status-enejecucion" title="Caso en Ejecución"><i class="fas fa-tools"></i> En Ejecución</span>`;
+    }
+    return `<span class="status-indicator status-pendiente" title="Caso Pendiente"><i class="fas fa-clock"></i> Pendiente</span>`;
   }
 
   function loadCases() {
@@ -238,9 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAlarmMute = document.getElementById('btnAlarmMute');
   const btnDismissAlarmModal = document.getElementById('btnDismissAlarmModal');
 
-  // Controles de sonido
+  // Controles de sonido y pre-aviso
+  const selectPreAlertMins = document.getElementById('selectPreAlertMins');
   const btnSoundToggle = document.getElementById('btnSoundToggle');
   const soundIcon = document.getElementById('soundIcon');
+  const btnTestPreAlert = document.getElementById('btnTestPreAlert');
   const btnTestSound = document.getElementById('btnTestSound');
 
   // Modal Principal SICS & Selector de Horarios
@@ -450,29 +512,90 @@ document.addEventListener('DOMContentLoaded', () => {
     return audioCtx;
   }
 
-  // Pre-alarma suave (2 tonos elegantes de cortesía)
-  function playAlertChime() {
+  // Control de parpadeo de título de pestaña para llamar la atención en segundo plano
+  function startFlashingTabTitle(msg) {
+    if (titleFlashTimer) clearInterval(titleFlashTimer);
+    let flip = false;
+    titleFlashTimer = setInterval(() => {
+      document.title = flip ? `⏰ ${msg}` : `🚨 ¡ATENCIÓN SICS!`;
+      flip = !flip;
+    }, 1000);
+  }
+
+  function stopFlashingTabTitle() {
+    if (titleFlashTimer) {
+      clearInterval(titleFlashTimer);
+      titleFlashTimer = null;
+    }
+    document.title = originalDocumentTitle;
+  }
+
+  window.addEventListener('focus', () => {
+    stopFlashingTabTitle();
+  });
+
+  // Notificación nativa de escritorio (Windows Toast)
+  function triggerDesktopNotification(title, body) {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        try {
+          const n = new Notification(title, {
+            body: body,
+            icon: './icon-192.png',
+            tag: 'sics-alarm-' + Date.now(),
+            requireInteraction: true
+          });
+          n.onclick = () => {
+            window.focus();
+            n.close();
+          };
+        } catch (e) {
+          console.warn('Desktop notification error:', e);
+        }
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }
+
+  // Pre-alarma sonora de alta presencia y llamada de atención (Dispatch Chime de 4 notas ascendentes)
+  function playPreAlertChime() {
     if (!soundEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
-      const playTone = (freq, start, dur) => {
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const playTone = (freq, start, dur, type = 'triangle', vol = 0.28) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
+        osc.type = type;
         osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime + start);
+        gain.gain.setValueAtTime(vol, ctx.currentTime + start);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime + start);
         osc.stop(ctx.currentTime + start + dur);
       };
-      playTone(659.25, 0, 0.22); // E5
-      playTone(880.00, 0.2, 0.35); // A5
+
+      // 4 tonos ascendentes nítidos y elegantes (Estilo aviso de aeropuerto / despacho de radio)
+      playTone(587.33, 0.00, 0.22, 'triangle', 0.24); // D5
+      playTone(739.99, 0.16, 0.22, 'triangle', 0.28); // F#5
+      playTone(880.00, 0.32, 0.25, 'sine', 0.32);     // A5
+      playTone(1174.66, 0.48, 0.45, 'sine', 0.38);    // D6
+
+      // Segunda ráfaga de confirmación a los 0.8s
+      playTone(880.00, 0.80, 0.18, 'sine', 0.30);     // A5
+      playTone(1174.66, 0.95, 0.55, 'sine', 0.40);    // D6
     } catch (e) {
-      console.warn('AudioContext chime error:', e);
+      console.warn('AudioContext pre-alert chime error:', e);
     }
+  }
+
+  // Alias para retrocompatibilidad
+  function playAlertChime() {
+    playPreAlertChime();
   }
 
   // Alarma sonora insistente tipo bíper de emergencia (pulso continuo)
@@ -589,6 +712,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Configuración del tiempo de Pre-aviso (10, 15, 20, 30, 45, 60 min)
+  if (selectPreAlertMins) {
+    selectPreAlertMins.value = String(preAlertMinutes);
+    selectPreAlertMins.addEventListener('change', (e) => {
+      preAlertMinutes = parseInt(e.target.value, 10) || 20;
+      localStorage.setItem(PRE_ALERT_MINUTES_KEY, preAlertMinutes);
+      preAlertNotifiedKeys.clear();
+      renderCases();
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: `Pre-aviso configurado a ${preAlertMinutes} min`,
+        text: `Se emitirá la alerta sonora y notificación ${preAlertMinutes} minutos antes de cada visita programada.`,
+        showConfirmButton: false,
+        timer: 2400
+      });
+    });
+  }
+
+  // Prueba de Pre-aviso Sonoro y Notificación de Escritorio / Segundo Plano
+  if (btnTestPreAlert) {
+    btnTestPreAlert.addEventListener('click', () => {
+      getAudioContext();
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      playPreAlertChime();
+      triggerDesktopNotification(
+        `⏰ PRE-AVISO SICS (${preAlertMinutes} min antes)`,
+        'Prueba de aviso preventivo: Orden #318290 (Rufe Izarra - Zona 3-Z). ¡Coordinar movimiento de cuadrilla!'
+      );
+      startFlashingTabTitle(`PRE-AVISO (${preAlertMinutes}m): #318290`);
+
+      Swal.fire({
+        title: '📢 Pre-aviso Sonoro & Visual Emitido',
+        html: `
+          <div style="text-align:left; font-size:0.92rem; line-height:1.5;">
+            <p>✓ <b>Chime de Despacho (4 notas ascendentes):</b> Sonó correctamente.</p>
+            <p>✓ <b>Notificación de Escritorio:</b> Enviada (aparecerá en Windows aunque tengas el navegador minimizado).</p>
+            <p>✓ <b>Llamada de atención en pestaña:</b> El título parpadeará mientras estés fuera.</p>
+            <p style="color:#f59e0b; margin-top:8px;"><b>Tiempo de anticipación activo:</b> ${preAlertMinutes} minutos antes de la hora pautada.</p>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonText: '✓ Entendido',
+        confirmButtonColor: '#0284c7'
+      }).then(() => {
+        stopFlashingTabTitle();
+      });
+    });
+  }
+
   // Desbloqueo automático del AudioContext en el primer clic
   document.addEventListener('click', () => getAudioContext(), { once: true });
 
@@ -629,19 +805,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const h = caseObj.hora_reprogramada || caseObj.hora_diferido;
     if (!f && !h) return null;
 
-    // Si tiene hora pero no fecha, asumir automáticamente la fecha de hoy
-    let yyyy_mm_dd = f;
-    if (!yyyy_mm_dd) {
-      yyyy_mm_dd = new Date().toISOString().split('T')[0];
-    } else if (yyyy_mm_dd.includes('/')) {
-      const parts = yyyy_mm_dd.split('/');
-      if (parts.length === 3 && parts[2].length === 4) {
-        yyyy_mm_dd = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-    }
-
-    const cleanHour = (h || '14:00').substring(0, 5);
-    const isoStr = `${yyyy_mm_dd}T${cleanHour.padStart(5, '0')}:00`;
+    const yyyy_mm_dd = extractCleanDateIso(f);
+    const cleanHour = extractCleanTime24(h);
+    const isoStr = `${yyyy_mm_dd}T${cleanHour}:00`;
     const ts = new Date(isoStr).getTime();
     if (isNaN(ts)) return null;
 
@@ -667,15 +833,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let countPausadas = 0;
 
     cases.forEach(c => {
-      const st = (c.estado || 'Pendiente').toLowerCase();
-      const mot = (c.motivo || '').toLowerCase();
-
-      if (st === 'realizado' || st === 'resuelto') {
+      const eff = getEffectiveStatus(c);
+      if (eff === 'Realizado') {
         countCumplidas++;
-      } else if (st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado') {
+      } else if (eff === 'Cancelado') {
         countCanceladas++;
-      } else if (st === 'pausa' || st === 'diferido' || mot.includes('reprogram')) {
+      } else if (eff === 'Pausa') {
         countPausadas++;
+        countPrincipal++; // Los casos en pausa forman parte de los casos activos de despacho
       } else {
         countPrincipal++;
       }
@@ -688,12 +853,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filtrar casos según la pestaña activa
     const filteredByTab = cases.filter(c => {
-      const st = (c.estado || 'Pendiente').toLowerCase();
-      const mot = (c.motivo || '').toLowerCase();
-      if (currentTab === 'cumplidas') return st === 'realizado' || st === 'resuelto';
-      if (currentTab === 'canceladas') return st === 'cancelado' || st === 'cancelado/espera' || st === 'rebotado';
-      if (currentTab === 'pausadas') return st === 'pausa' || st === 'diferido' || mot.includes('reprogram');
-      return st !== 'realizado' && st !== 'resuelto' && st !== 'cancelado' && st !== 'cancelado/espera' && st !== 'rebotado';
+      const eff = getEffectiveStatus(c);
+      if (currentTab === 'cumplidas') return eff === 'Realizado';
+      if (currentTab === 'canceladas') return eff === 'Cancelado';
+      if (currentTab === 'pausadas') return eff === 'Pausa';
+      // Bandeja principal muestra todos los casos activos (pendientes, en ejecución y pausados)
+      return eff !== 'Realizado' && eff !== 'Cancelado';
     });
 
     // Contadores de alcance (Todas las Zonas vs Mi Zona)
@@ -771,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <i class="fas fa-bell"></i> ¡Vencido! (${hora12})
             </span>
           `;
-        } else if (diffMins <= 15) {
+        } else if (diffMins <= preAlertMinutes) {
           reprogBadgeHtml = `
             <span class="badge-reprog-warning ${isMyZone ? 'badge-my-zone-warning' : ''}" title="Próximo a cumplirse en ${diffMins} minutos (${hora12})">
               <i class="far fa-clock"></i> En ${diffMins}m (${hora12})
@@ -847,9 +1012,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ` : ''}
 
           <div class="case-status-row" style="margin-top:10px;">
-            <span class="status-indicator status-${(c.estado || 'pendiente').replace(/[^a-zA-Z]/g, '').toLowerCase()}">
-              ${c.estado || 'Pendiente'}
-            </span>
+            ${renderStatusIndicator(c)}
 
             <div class="case-card-actions">
               <button class="btn-icon btn-wa" onclick="window.copiarFichaWhatsApp('${c.id}')" title="Copiar ficha sobria para WhatsApp">
@@ -905,9 +1068,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 1. AVISO PREVENTIVO (15 MINUTOS ANTES)
-      if (diffMins <= 15 && diffMins > 0) {
-        const preKey = `pre_${c.id}_${scheduledInfo.fechaIso}_${scheduledInfo.horaStr}`;
+      // 1. AVISO PREVENTIVO (CONFIGURABLE: PRE-AVISO ANTES DE LA HORA)
+      if (diffMins <= preAlertMinutes && diffMins > 0) {
+        const preKey = `pre_${c.id}_${scheduledInfo.fechaIso}_${scheduledInfo.horaStr}_${preAlertMinutes}`;
         if (!preAlertNotifiedKeys.has(preKey)) {
           preAlertNotifiedKeys.add(preKey);
           const hora12 = formatTime12h(scheduledInfo.horaStr);
@@ -928,7 +1091,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Sonar pre-aviso si corresponde a mi zona o si tengo todas las zonas activas
           if (isMyZone || !soundOnlyMyZone) {
-            playAlertChime();
+            playPreAlertChime();
+            triggerDesktopNotification(
+              `⏰ PRE-AVISO SICS (${diffMins} min): #${c.orden} (${c.cliente})`,
+              `Reprogramado para las ${hora12} (${c.zona}). ¡Coordinar movimiento de cuadrilla!`
+            );
+            startFlashingTabTitle(`PRE-AVISO (${diffMins}m): #${c.orden}`);
           }
         }
       }
@@ -1370,11 +1538,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setSelectValue(selectId, val) {
     const sel = document.getElementById(selectId);
-    if (!sel || !val) return;
-    const vNorm = val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (!sel || val === undefined || val === null) return;
+    if (!sel.options) {
+      sel.value = String(val);
+      return;
+    }
+    const vNorm = String(val).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     for (let i = 0; i < sel.options.length; i++) {
-      const optVal = sel.options[i].value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const optText = sel.options[i].text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const optVal = String(sel.options[i].value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const optText = String(sel.options[i].text).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (optVal === vNorm || optText === vNorm || optVal.includes(vNorm) || vNorm.includes(optVal) || optText.includes(vNorm)) {
         sel.selectedIndex = i;
         return;
@@ -1587,30 +1759,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 12. ACCIONES RÁPIDAS (WhatsApp, Marcar Realizado, Editar, Eliminar)
   window.editarCaso = function(id) {
-    const c = cases.find(item => item.id === id);
+    const c = cases.find(item => item.id === id || String(item.id) === String(id) || String(item.orden) === String(id));
     if (c) openModal(c);
   };
 
   window.marcarResuelto = function(id) {
-    const c = cases.find(item => item.id === id);
+    const c = cases.find(item => item.id === id || String(item.id) === String(id) || String(item.orden) === String(id));
     if (c) {
       c.estado = 'Realizado';
+      c.timestamp = Date.now();
       saveCases();
       renderCases();
-      updateStatusInCloud(c.id, 'Realizado');
+      updateStatusInCloud(c.id, 'Realizado', c.orden);
 
       Swal.fire({
         icon: 'success',
         title: '¡Caso Cumplido!',
-        text: `Orden #${c.orden} marcada como Realizada.`,
-        timer: 1300,
+        text: `Orden #${c.orden} archivada y marcada como Realizada.`,
+        timer: 1400,
         showConfirmButton: false
       });
     }
   };
 
   window.copiarFichaWhatsApp = function(id) {
-    const c = cases.find(item => item.id === id);
+    const c = cases.find(item => item.id === id || String(item.id) === String(id) || String(item.orden) === String(id));
     if (!c) return;
 
     let text = `*ODT SICS AIRTEK — #${c.orden}*\n`;
@@ -1621,8 +1794,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (c.cuadrilla) text += `*Cuadrilla:* ${c.cuadrilla}\n`;
     if (c.motivo) text += `*Motivo:* ${c.motivo}\n`;
     if (c.direccion) text += `*Dirección:* ${c.direccion}\n`;
-    if (c.hora_reprogramada) text += `*Reprogramada para:* ${c.hora_reprogramada}\n`;
-    text += `*Estatus:* ${c.estado || 'Pendiente'}\n`;
+    if (c.hora_reprogramada) text += `*Reprogramada para:* ${formatTime12h(c.hora_reprogramada)}\n`;
+    text += `*Estatus:* ${getEffectiveStatus(c) === 'Pausa' ? 'En Pausa' : (c.estado || 'Pendiente')}\n`;
     if (c.avance) text += `*Nota:* ${c.avance}`;
 
     navigator.clipboard.writeText(text).then(() => {
@@ -1648,10 +1821,13 @@ document.addEventListener('DOMContentLoaded', () => {
       cancelButtonText: 'Cancelar'
     }).then(res => {
       if (res.isConfirmed) {
-        cases = cases.filter(item => item.id !== id);
+        const found = cases.find(item => item.id === id || String(item.id) === String(id) || String(item.orden) === String(id));
+        const actualId = found ? found.id : id;
+        const actualOrden = found ? found.orden : id;
+        cases = cases.filter(item => item.id !== actualId && String(item.id) !== String(id) && String(item.orden) !== String(id));
         saveCases();
         renderCases();
-        deleteCaseInCloud(id);
+        deleteCaseInCloud(actualId, actualOrden);
       }
     });
   };
@@ -1738,28 +1914,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function updateStatusInCloud(id, newStatus) {
+  async function updateStatusInCloud(id, newStatus, orden = '') {
     const cloudUrl = getCloudUrl();
     if (!cloudUrl) return;
     try {
       await fetch(cloudUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'update_status', id, estado: newStatus })
+        body: JSON.stringify({ action: 'update_status', id, orden, estado: newStatus })
       });
     } catch (e) {
       console.warn('Error actualizando estado en Sheets:', e);
     }
   }
 
-  async function deleteCaseInCloud(id) {
+  async function deleteCaseInCloud(id, orden = '') {
     const cloudUrl = getCloudUrl();
     if (!cloudUrl) return;
     try {
       await fetch(cloudUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'delete_case', id })
+        body: JSON.stringify({ action: 'delete_case', id, orden })
       });
     } catch (e) {
       console.warn('Error eliminando caso en Sheets:', e);
