@@ -79,11 +79,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   transition: all 0.3s ease;
 }
 
@@ -223,8 +223,8 @@ body.dark-mode .header-brand { color: #f8fafc; }
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .header-actions .btn-action {
@@ -678,6 +678,17 @@ body.light-mode .sics-tab-btn:hover {
   box-shadow: 0 5px 20px rgba(37, 99, 235, 0.4);
 }
 
+.btn-alarm-stop {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  border: 1px solid #ef4444;
+}
+.btn-alarm-stop:hover {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
 .btn-alarm-snooze {
   background: #f59e0b;
   color: #000;
@@ -697,6 +708,326 @@ body.light-mode .sics-tab-btn:hover {
   color: #fff;
 }
 
+/* =========================================================
+   SELECTOR DE MI ZONA, BOTÓN DE DETENER Y ALCANCE
+   ========================================================= */
+.my-zone-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 12px;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+}
+
+.my-zone-badge-wrap:hover {
+  border-color: #38bdf8;
+  background: rgba(14, 165, 233, 0.16);
+}
+
+.my-zone-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.my-zone-select {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  outline: none;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.my-zone-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.btn-zone-sound-filter {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.btn-zone-sound-filter:hover {
+  transform: scale(1.15);
+}
+
+/* BOTÓN DE EMERGENCIA PARA DETENER ALARMA EN HEADER */
+.btn-flash-stop-alarm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.82rem;
+  padding: 7px 16px;
+  border-radius: 30px;
+  border: 1px solid #fca5a5;
+  cursor: pointer;
+  animation: flashStopBtn 0.8s infinite alternate;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+  letter-spacing: 0.5px;
+}
+
+@keyframes flashStopBtn {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+  100% { transform: scale(1.06); box-shadow: 0 0 25px rgba(239, 68, 68, 1); }
+}
+
+/* TOGGLE DE ALCANCE: TODAS LAS ZONAS VS SOLO MI ZONA */
+.scope-toggle-group {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--dash-border);
+}
+
+.btn-scope-pill {
+  background: transparent;
+  border: none;
+  color: var(--dash-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+}
+
+.btn-scope-pill:hover {
+  color: var(--dash-text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-scope-pill.active {
+  background: var(--corp-active);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.35);
+}
+
+/* DISTINCIÓN DE TARJETAS: MI ZONA VS COMPAÑEROS */
+.case-card.case-card-my-zone {
+  border-left: 4px solid #38bdf8 !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(15, 23, 42, 0.7)) !important;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.12);
+}
+
+.case-card.case-card-my-zone:hover {
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.22);
+}
+
+.badge-my-zone {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(99, 102, 241, 0.25));
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-other-zone {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--dash-text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* SELECTOR INTELIGENTE DE HORARIOS DE OFICINA SICS (08:00 AM - 05:00 PM) */
+.time-scheduler-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scheduler-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scheduler-header label {
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  color: #38bdf8 !important;
+  margin-bottom: 0 !important;
+}
+
+.office-hours-tag {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scheduler-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.scheduler-date-col, .scheduler-time-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scheduler-sublabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dash-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scheduler-date-input-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-date-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-date-chip:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.scheduler-time-select-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.scheduler-select {
+  flex: 1;
+  background: #090e1a !important;
+  border: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 9px 12px !important;
+  font-size: 0.88rem !important;
+  cursor: pointer;
+}
+
+.scheduler-select optgroup {
+  font-weight: 800;
+  color: #38bdf8;
+  background: #0b1120;
+}
+
+.scheduler-select option {
+  font-weight: 500;
+  color: #f8fafc;
+  background: #0f172a;
+  padding: 6px;
+}
+
+.custom-time-field {
+  background: #090e1a !important;
+  border: 1px solid #38bdf8 !important;
+  color: #38bdf8 !important;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+/* CHIPS RÁPIDOS DE HORAS (09:30, 11:30, 02:00, 02:30, 04:00) */
+.scheduler-quick-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.chips-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dash-text-muted);
+  margin-right: 4px;
+}
+
+.btn-time-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--dash-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-time-chip:hover {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.btn-time-chip.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+
 /* BADGES PARA CASOS CON ALARMA / REPROGRAMADOS EN LAS TARJETAS */
 .badge-reprog-warning {
   background: rgba(245, 158, 11, 0.18);
@@ -710,6 +1041,12 @@ body.light-mode .sics-tab-btn:hover {
   align-items: center;
   gap: 5px;
   animation: pulseGlow 1.5s infinite alternate;
+}
+
+.badge-my-zone-warning {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
 }
 
 .badge-reprog-due {
