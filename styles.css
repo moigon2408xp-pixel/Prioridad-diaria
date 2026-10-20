@@ -2561,3 +2561,68 @@ body:not(.dark-mode) .mobile-bottom-bar {
     border-radius: 12px;
   }
 }
+
+/* =========================================================
+   ESTILOS DE ESTADOS OPERATIVOS SICS (PAUSA, PENDIENTE, ETC)
+   ========================================================= */
+.status-indicator {
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  letter-spacing: 0.3px !important;
+  transition: all 0.2s ease !important;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--dash-text-muted);
+}
+
+.status-pausa, .status-diferido {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25) !important;
+  font-weight: 800 !important;
+}
+
+.status-pendiente, .status-escalado {
+  background: rgba(14, 165, 233, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(14, 165, 233, 0.35) !important;
+}
+
+.status-enejecucion, .status-enrutaensitio, .status-enejecucin {
+  background: rgba(139, 92, 246, 0.2) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(139, 92, 246, 0.4) !important;
+}
+
+.status-realizado, .status-resuelto {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+}
+
+.status-cancelado, .status-canceladoespera, .status-rebotado {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Selector de Pre-aviso en Header */
+.pre-alert-badge-wrap {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.pre-alert-badge-wrap:hover {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.18) !important;
+}
+
+.pre-alert-badge-wrap select {
+  color: #fbbf24 !important;
+}
+
