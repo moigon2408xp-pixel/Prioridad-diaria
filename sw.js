@@ -3,7 +3,7 @@
  * Modo Offline, Caché de Recursos y Sincronización
  */
 
-const CACHE_NAME = 'sics-airtek-v1.0.2';
+const CACHE_NAME = 'sics-airtek-v1.1.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
