@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261020_v3">
 </head>
 <body class="dark-mode">
 
@@ -85,11 +85,28 @@
         </button>
       </div>
 
+      <!-- Selector de Anticipación de Pre-aviso Configurable -->
+      <div class="my-zone-badge-wrap pre-alert-badge-wrap" title="Configura cuántos minutos antes de la hora programada quieres recibir el aviso preventivo sonoro">
+        <i class="far fa-clock" style="color:#f59e0b;"></i>
+        <span class="my-zone-label">Pre-aviso:</span>
+        <select id="selectPreAlertMins" class="my-zone-select" title="Seleccionar tiempo de anticipación del pre-aviso">
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+          <option value="20" selected>20 min antes</option>
+          <option value="30">30 min antes</option>
+          <option value="45">45 min antes</option>
+          <option value="60">60 min antes (1h)</option>
+        </select>
+      </div>
+
       <!-- Botones de Audio -->
       <button id="btnSoundToggle" class="control-btn-circle" title="Sonido de Alarma: Activado">
         <i class="fas fa-volume-up" id="soundIcon" style="color:var(--c-info);"></i>
       </button>
-      <button id="btnTestSound" class="control-btn-circle" title="Probar Alarma Sonora">
+      <button id="btnTestPreAlert" class="control-btn-circle" title="Probar Pre-aviso Sonoro & Notificación de Escritorio">
+        <i class="fas fa-bullhorn" style="color:#38bdf8;"></i>
+      </button>
+      <button id="btnTestSound" class="control-btn-circle" title="Probar Alarma Crítica Sonora">
         <i class="fas fa-bell" style="color:#f59e0b;"></i>
       </button>
 
@@ -543,8 +560,8 @@
     </button>
   </nav>
 
-  <script src="sics_dict.js?v=20261015"></script>
-  <script src="app.js?v=20261016_android"></script>
+  <script src="sics_dict.js?v=20261020"></script>
+  <script src="app.js?v=20261020_v3"></script>
 
   <!-- REGISTRO DEL SERVICE WORKER PWA EN ANDROID -->
   <script>
